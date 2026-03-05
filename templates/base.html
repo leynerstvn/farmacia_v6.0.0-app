@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Sistema de gestión de farmacia - Control de inventario, ventas y reportes">
+    <title>{% block title %}PUNTO SALUD{% endblock %} | Sistema de Farmacia</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.2/font/bootstrap-icons.min.css" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
+    {% block extra_css %}{% endblock %}
+</head>
+
+<body>
+    {% if current_user.is_authenticated %}
+    <!-- Sidebar -->
+    <nav class="sidebar" id="sidebar">
+        <div class="sidebar-brand" style="justify-content: center; padding: 20px 15px;">
+            <img src="{{ url_for('static', filename='img/logo.png') }}" alt="Punto Salud" class="sidebar-logo">
+        </div>
+        <div class="sidebar-nav">
+            <div class="nav-section">
+                <div class="nav-section-title">Principal</div>
+                <a href="{{ url_for('dashboard') }}"
+                    class="nav-link {% if request.endpoint == 'dashboard' %}active{% endif %}" id="nav-dashboard">
+                    <i class="bi bi-grid-1x2-fill"></i>
+                    Dashboard
+                </a>
+            </div>
+            <div class="nav-section">
+                <div class="nav-section-title">Gestión</div>
+                <a href="{{ url_for('productos_lista') }}"
+                    class="nav-link {% if 'producto' in request.endpoint %}active{% endif %}" id="nav-productos">
+                    <i class="bi bi-box-seam-fill"></i>
+                    Productos
+                </a>
+                <a href="{{ url_for('ventas_lista') }}"
+                    class="nav-link {% if 'venta' in request.endpoint %}active{% endif %}" id="nav-ventas">
+                    <i class="bi bi-cart-fill"></i>
+                    Ventas
+                </a>
+                <a href="{{ url_for('compras_lista') }}"
+                    class="nav-link {% if 'compra' in request.endpoint %}active{% endif %}" id="nav-compras">
+                    <i class="bi bi-truck"></i>
+                    Compras
+                </a>
+            </div>
+            <div class="nav-section">
+                <div class="nav-section-title">Análisis</div>
+                <a href="{{ url_for('reportes') }}"
+                    class="nav-link {% if request.endpoint == 'reportes' %}active{% endif %}" id="nav-reportes">
+                    <i class="bi bi-graph-up"></i>
+                    Reportes
+                </a>
+            </div>
+            <div class="nav-section">
+                <div class="nav-section-title">Usuario</div>
+                <div class="text-white small mb-2 px-3">
+                    <i class="bi bi-person-circle me-1"></i> {{ current_user.email }}<br>
+                    <span class="badge bg-{{ 'primary' if current_user.is_admin else 'secondary' }} mt-1">{{
+                        current_user.rol|title }}</span>
+                </div>
+                <a href="{{ url_for('logout') }}" class="nav-link text-danger">
+                    <i class="bi bi-box-arrow-right"></i>
+                    Cerrar Sesión
+                </a>
+            </div>
+        </div>
+    </nav>
+    {% endif %}
+
+    <!-- Main Content -->
+    <main class="main-content" {% if not current_user.is_authenticated %}style="margin-left: 0; padding: 0;" {% endif
+        %}>
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        {% for category, message in messages %}
+        <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        {% endfor %}
+        {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+
+</html>

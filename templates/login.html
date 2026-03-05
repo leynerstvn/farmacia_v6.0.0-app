@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% block title %}Iniciar Sesión{% endblock %}
+
+{% block content %}
+<div class="container d-flex justify-content-center align-items-center" style="min-height: 100vh;">
+    <div class="card bg-dark text-white border-secondary" style="width: 100%; max-width: 400px;">
+        <div class="card-header text-center border-secondary py-4">
+            <h3 class="mb-0">PUNTO SALUD</h3>
+            <p class="text-muted small mb-0 mt-2">Sistema de Gestión de Farmacia</p>
+        </div>
+        <div class="card-body p-4">
+            <h4 class="card-title text-center mb-4">Iniciar Sesión</h4>
+
+            <form method="POST" action="{{ url_for('login') }}">
+                <div class="mb-3">
+                    <label for="email" class="form-label">Correo Electrónico</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-secondary text-white border-secondary">
+                            <i class="bi bi-envelope"></i>
+                        </span>
+                        <input type="email" class="form-control bg-dark text-white border-secondary" id="email"
+                            name="email" required autofocus placeholder="ejemplo@farmacia.com">
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <label for="password" class="form-label">Contraseña</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-secondary text-white border-secondary">
+                            <i class="bi bi-lock"></i>
+                        </span>
+                        <input type="password" class="form-control bg-dark text-white border-secondary" id="password"
+                            name="password" required placeholder="••••••••">
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary w-100 py-2">
+                    <i class="bi bi-box-arrow-in-right me-2"></i>Ingresar
+                </button>
+            </form>
+
+            <div class="mt-4 text-center text-muted small">
+                <p class="mb-1">Credenciales de prueba:</p>
+                <p class="mb-0">Admin: admin@farmacia.com / admin123</p>
+                <p class="mb-0">Usuario: usuario@farmacia.com / usuario123</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

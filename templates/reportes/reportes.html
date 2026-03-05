@@ -1,0 +1,205 @@
+{% extends "base.html" %}
+{% block title %}Reportes{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1><i class="bi bi-graph-up me-2"></i>Reportes de Ventas</h1>
+        <span class="breadcrumb">Análisis detallado del rendimiento</span>
+    </div>
+</div>
+
+<!-- Selector de período -->
+<div class="report-tabs" id="report-tabs">
+    <button class="report-tab active" data-tipo="diario" onclick="cargarReporte('diario')">
+        <i class="bi bi-calendar-day me-1"></i> Diario
+    </button>
+    <button class="report-tab" data-tipo="semanal" onclick="cargarReporte('semanal')">
+        <i class="bi bi-calendar-week me-1"></i> Semanal
+    </button>
+    <button class="report-tab" data-tipo="mensual" onclick="cargarReporte('mensual')">
+        <i class="bi bi-calendar-month me-1"></i> Mensual
+    </button>
+    <button class="report-tab" data-tipo="anual" onclick="cargarReporte('anual')">
+        <i class="bi bi-calendar me-1"></i> Anual
+    </button>
+</div>
+
+<!-- Métricas del período -->
+<div class="row g-4 mb-4">
+    <div class="col-md-4">
+        <div class="stat-card success">
+            <div class="stat-icon"><i class="bi bi-currency-dollar"></i></div>
+            <div class="stat-value" id="reporte-total">$0.00</div>
+            <div class="stat-label">Total Ventas del Período</div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="stat-card primary">
+            <div class="stat-icon"><i class="bi bi-receipt"></i></div>
+            <div class="stat-value" id="reporte-num-ventas">0</div>
+            <div class="stat-label">Número de Ventas</div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="stat-card info">
+            <div class="stat-icon"><i class="bi bi-calculator"></i></div>
+            <div class="stat-value" id="reporte-promedio">$0.00</div>
+            <div class="stat-label">Promedio por Venta</div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Gráfico Principal -->
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-bar-chart me-2"></i>Ventas por Período
+            </div>
+            <div class="card-body">
+                <canvas id="chartReporte" height="320"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Top Productos -->
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-trophy me-2"></i>Top 5 Productos
+            </div>
+            <div class="card-body">
+                <div id="top-productos">
+                    <div class="empty-state py-3">
+                        <p class="mb-0">Cargando...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let chartReporte = null;
+
+    function cargarReporte(tipo) {
+        // Actualizar tabs
+        document.querySelectorAll('.report-tab').forEach(tab => {
+            tab.classList.toggle('active', tab.dataset.tipo === tipo);
+        });
+
+        fetch(`/api/reportes/${tipo}`)
+            .then(res => res.json())
+            .then(data => {
+                // Actualizar métricas
+                document.getElementById('reporte-total').textContent = '$' + data.total.toFixed(2);
+                document.getElementById('reporte-num-ventas').textContent = data.num_ventas;
+                const promedio = data.num_ventas > 0 ? data.total / data.num_ventas : 0;
+                document.getElementById('reporte-promedio').textContent = '$' + promedio.toFixed(2);
+
+                // Actualizar gráfico
+                if (chartReporte) chartReporte.destroy();
+
+                const ctx = document.getElementById('chartReporte').getContext('2d');
+                const gradient = ctx.createLinearGradient(0, 0, 0, 320);
+                gradient.addColorStop(0, 'rgba(13, 110, 253, 0.4)');
+                gradient.addColorStop(1, 'rgba(13, 110, 253, 0.0)');
+
+                chartReporte = new Chart(ctx, {
+                    type: tipo === 'anual' ? 'bar' : 'line',
+                    data: {
+                        labels: data.labels,
+                        datasets: [{
+                            label: 'Ventas ($)',
+                            data: data.valores,
+                            backgroundColor: tipo === 'anual' ? 'rgba(13, 110, 253, 0.3)' : gradient,
+                            borderColor: 'rgba(13, 110, 253, 0.8)',
+                            borderWidth: 2,
+                            borderRadius: tipo === 'anual' ? 8 : 0,
+                            fill: tipo !== 'anual',
+                            tension: 0.4,
+                            pointBackgroundColor: 'rgba(13, 110, 253, 1)',
+                            pointBorderColor: '#fff',
+                            pointBorderWidth: 2,
+                            pointRadius: tipo === 'diario' ? 0 : 4,
+                            pointHoverRadius: 6
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        interaction: {
+                            intersect: false,
+                            mode: 'index'
+                        },
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                backgroundColor: 'rgba(26, 29, 35, 0.95)',
+                                titleColor: '#e8eaed',
+                                bodyColor: '#9aa0a6',
+                                borderColor: 'rgba(13, 110, 253, 0.3)',
+                                borderWidth: 1,
+                                cornerRadius: 8,
+                                padding: 12,
+                                callbacks: {
+                                    label: function (context) {
+                                        return ' $' + context.parsed.y.toFixed(2);
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                grid: { color: 'rgba(255,255,255,0.05)' },
+                                ticks: { color: '#9aa0a6', callback: v => '$' + v }
+                            },
+                            x: {
+                                grid: { display: false },
+                                ticks: {
+                                    color: '#9aa0a6',
+                                    maxRotation: tipo === 'mensual' ? 0 : 45,
+                                    autoSkip: true,
+                                    maxTicksLimit: tipo === 'diario' ? 12 : 15
+                                }
+                            }
+                        }
+                    }
+                });
+
+                // Top productos
+                const topContainer = document.getElementById('top-productos');
+                if (data.top_productos.length === 0) {
+                    topContainer.innerHTML = `
+                        <div class="empty-state py-3">
+                            <i class="bi bi-inbox" style="font-size: 40px;"></i>
+                            <p class="mt-2 mb-0">Sin datos en este período</p>
+                        </div>`;
+                } else {
+                    let topHTML = '';
+                    const medallas = ['🥇', '🥈', '🥉', '4️⃣', '5️⃣'];
+                    data.top_productos.forEach((p, i) => {
+                        topHTML += `
+                            <div class="cart-item">
+                                <div class="item-info">
+                                    <h6>${medallas[i]} ${p.nombre}</h6>
+                                    <small>${p.cantidad} unidades · $${p.ingreso.toFixed(2)}</small>
+                                </div>
+                            </div>`;
+                    });
+                    topContainer.innerHTML = topHTML;
+                }
+            })
+            .catch(err => {
+                console.error('Error cargando reporte:', err);
+            });
+    }
+
+    // Cargar reporte diario al inicio
+    cargarReporte('diario');
+</script>
+{% endblock %}

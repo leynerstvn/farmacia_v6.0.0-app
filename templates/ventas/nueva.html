@@ -1,0 +1,217 @@
+{% extends "base.html" %}
+{% block title %}Nueva Venta{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1><i class="bi bi-cart-plus-fill me-2"></i>Nueva Venta</h1>
+        <span class="breadcrumb">
+            <a href="{{ url_for('ventas_lista') }}"
+                style="color: var(--primary-light); text-decoration: none;">Ventas</a>
+            / Punto de Venta
+        </span>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Selección de Productos -->
+    <div class="col-md-7">
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-box-seam me-2"></i>Seleccionar Productos
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="form-label">Cliente (opcional)</label>
+                    <input type="text" id="input-cliente" class="form-control" placeholder="Nombre del cliente"
+                        value="Cliente General">
+                </div>
+                <div class="search-bar mb-3">
+                    <i class="bi bi-search"></i>
+                    <input type="text" id="buscar-producto" class="form-control"
+                        placeholder="Buscar producto para agregar...">
+                </div>
+                <div id="lista-productos" style="max-height: 400px; overflow-y: auto;">
+                    {% for p in productos %}
+                    <div class="cart-item producto-item" data-id="{{ p.id }}" data-nombre="{{ p.nombre }}"
+                        data-descripcion="{{ p.descripcion|default('')|escape }}" data-precio="{{ p.precio_venta }}"
+                        data-stock="{{ p.stock }}" style="cursor: pointer;"
+                        onclick="agregarAlCarrito({{ p.id }}, '{{ p.nombre }}', {{ p.precio_venta }}, {{ p.stock }})">
+                        <div class="item-info">
+                            <h6>{{ p.nombre }}</h6>
+                            <small>Precio: ${{ "%.2f"|format(p.precio_venta) }} | Stock: {{ p.stock }}</small>
+                        </div>
+                        <button class="btn btn-primary btn-sm">
+                            <i class="bi bi-plus"></i>
+                        </button>
+                    </div>
+                    {% endfor %}
+                    {% if not productos %}
+                    <div class="empty-state py-3">
+                        <p class="mb-0">No hay productos con stock disponible</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Carrito -->
+    <div class="col-md-5">
+        <div class="card" style="position: sticky; top: 24px;">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-basket me-2"></i>Carrito de Venta</span>
+                <span class="badge" style="background: var(--primary);" id="badge-items">0 items</span>
+            </div>
+            <div class="card-body">
+                <div id="carrito-items" style="max-height: 300px; overflow-y: auto;">
+                    <div class="empty-state py-3" id="carrito-vacio">
+                        <i class="bi bi-basket" style="font-size: 40px;"></i>
+                        <p class="mt-2 mb-0">Agrega productos al carrito</p>
+                    </div>
+                </div>
+
+                <div class="cart-total">
+                    <div class="total-label">TOTAL A PAGAR</div>
+                    <div class="total-value" id="total-venta">$0.00</div>
+                </div>
+
+                <button class="btn btn-success w-100 mt-3" id="btn-procesar-venta" onclick="procesarVenta()" disabled>
+                    <i class="bi bi-check-circle"></i> Procesar Venta
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let carrito = [];
+
+    // Filtro de búsqueda
+    document.getElementById('buscar-producto').addEventListener('input', function () {
+        const filtro = this.value.toLowerCase();
+        document.querySelectorAll('.producto-item').forEach(item => {
+            const nombre = item.dataset.nombre.toLowerCase();
+            const descripcion = (item.dataset.descripcion || '').toLowerCase();
+            item.style.display = (nombre.includes(filtro) || descripcion.includes(filtro)) ? 'flex' : 'none';
+        });
+    });
+
+    function agregarAlCarrito(id, nombre, precio, stockMax) {
+        const existente = carrito.find(item => item.id === id);
+        if (existente) {
+            if (existente.cantidad >= stockMax) {
+                alert('Stock insuficiente para ' + nombre);
+                return;
+            }
+            existente.cantidad++;
+        } else {
+            carrito.push({ id, nombre, precio, cantidad: 1, stockMax });
+        }
+        renderCarrito();
+    }
+
+    function eliminarDelCarrito(id) {
+        carrito = carrito.filter(item => item.id !== id);
+        renderCarrito();
+    }
+
+    function cambiarCantidad(id, delta) {
+        const item = carrito.find(i => i.id === id);
+        if (!item) return;
+        item.cantidad += delta;
+        if (item.cantidad <= 0) {
+            eliminarDelCarrito(id);
+            return;
+        }
+        if (item.cantidad > item.stockMax) {
+            item.cantidad = item.stockMax;
+            alert('Stock máximo alcanzado');
+        }
+        renderCarrito();
+    }
+
+    function renderCarrito() {
+        const container = document.getElementById('carrito-items');
+        const vacioDiv = document.getElementById('carrito-vacio');
+
+        if (carrito.length === 0) {
+            container.innerHTML = '';
+            container.appendChild(vacioDiv);
+            vacioDiv.style.display = 'block';
+            document.getElementById('total-venta').textContent = '$0.00';
+            document.getElementById('badge-items').textContent = '0 items';
+            document.getElementById('btn-procesar-venta').disabled = true;
+            return;
+        }
+
+        let html = '';
+        let total = 0;
+        let totalItems = 0;
+
+        carrito.forEach(item => {
+            const subtotal = item.precio * item.cantidad;
+            total += subtotal;
+            totalItems += item.cantidad;
+            html += `
+                <div class="cart-item">
+                    <div class="item-info" style="flex: 1;">
+                        <h6>${item.nombre}</h6>
+                        <small>$${item.precio.toFixed(2)} x ${item.cantidad} = <strong>$${subtotal.toFixed(2)}</strong></small>
+                    </div>
+                    <div class="d-flex align-items-center gap-1">
+                        <button class="btn btn-outline-light btn-sm" onclick="cambiarCantidad(${item.id}, -1)" style="padding: 2px 8px;">
+                            <i class="bi bi-dash"></i>
+                        </button>
+                        <span style="min-width: 30px; text-align: center; font-weight: 600;">${item.cantidad}</span>
+                        <button class="btn btn-outline-light btn-sm" onclick="cambiarCantidad(${item.id}, 1)" style="padding: 2px 8px;">
+                            <i class="bi bi-plus"></i>
+                        </button>
+                        <button class="btn btn-danger btn-sm ms-1" onclick="eliminarDelCarrito(${item.id})" style="padding: 2px 8px;">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+        });
+
+        container.innerHTML = html;
+        document.getElementById('total-venta').textContent = '$' + total.toFixed(2);
+        document.getElementById('badge-items').textContent = totalItems + ' items';
+        document.getElementById('btn-procesar-venta').disabled = false;
+    }
+
+    function procesarVenta() {
+        if (carrito.length === 0) return;
+
+        const datos = {
+            cliente: document.getElementById('input-cliente').value,
+            items: carrito.map(item => ({
+                producto_id: item.id,
+                cantidad: item.cantidad
+            }))
+        };
+
+        fetch('{{ url_for("venta_nueva") }}', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(datos)
+        })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    alert('✅ Venta registrada exitosamente. Total: $' + data.total.toFixed(2));
+                    window.location.href = '{{ url_for("ventas_lista") }}';
+                } else {
+                    alert('❌ Error: ' + data.error);
+                }
+            })
+            .catch(err => {
+                alert('❌ Error al procesar la venta');
+                console.error(err);
+            });
+    }
+</script>
+{% endblock %}

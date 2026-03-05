@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}Compras{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1><i class="bi bi-truck me-2"></i>Historial de Compras</h1>
+        <span class="breadcrumb">Registro de ingreso de mercadería</span>
+    </div>
+    <a href="{{ url_for('compra_nueva') }}" class="btn btn-primary" id="btn-nueva-compra">
+        <i class="bi bi-plus-lg"></i> Nueva Compra
+    </a>
+</div>
+
+<div class="card">
+    <div class="card-body p-0">
+        {% if compras %}
+        <div class="table-responsive">
+            <table class="table" id="tabla-compras">
+                <thead>
+                    <tr>
+                        <th>N° Compra</th>
+                        <th>Fecha</th>
+                        <th>Proveedor</th>
+                        <th>Productos</th>
+                        <th>Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for c in compras %}
+                    <tr>
+                        <td><strong>#{{ c.id }}</strong></td>
+                        <td>{{ c.fecha.strftime('%d/%m/%Y %H:%M') }}</td>
+                        <td>{{ c.proveedor or 'Proveedor General' }}</td>
+                        <td><span class="badge" style="background: var(--dark-4); color: var(--text-secondary);">{{
+                                c.detalles|length }} items</span></td>
+                        <td><strong class="text-gradient">${{ "%.2f"|format(c.total) }}</strong></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <i class="bi bi-truck"></i>
+            <h5>No hay compras registradas</h5>
+            <p>Registra tu primera compra de mercadería.</p>
+            <a href="{{ url_for('compra_nueva') }}" class="btn btn-primary mt-3">
+                <i class="bi bi-plus-lg"></i> Nueva Compra
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

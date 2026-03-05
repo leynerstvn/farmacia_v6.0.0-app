@@ -1,0 +1,224 @@
+{% extends "base.html" %}
+{% block title %}Nueva Compra{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1><i class="bi bi-truck me-2"></i>Registrar Compra</h1>
+        <span class="breadcrumb">
+            <a href="{{ url_for('compras_lista') }}"
+                style="color: var(--primary-light); text-decoration: none;">Compras</a>
+            / Nueva Compra
+        </span>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Selección de Productos -->
+    <div class="col-md-7">
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-box-seam me-2"></i>Agregar Productos a la Compra
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="form-label">Proveedor</label>
+                    <input type="text" id="input-proveedor" class="form-control" placeholder="Nombre del proveedor"
+                        value="Proveedor General">
+                </div>
+                <div class="search-bar mb-3">
+                    <i class="bi bi-search"></i>
+                    <input type="text" id="buscar-producto-compra" class="form-control"
+                        placeholder="Buscar producto...">
+                </div>
+                <div id="lista-productos-compra" style="max-height: 400px; overflow-y: auto;">
+                    {% for p in productos %}
+                    <div class="cart-item producto-compra-item" data-nombre="{{ p.nombre }}"
+                        data-descripcion="{{ p.descripcion|default('')|escape }}" style="cursor: pointer;"
+                        onclick="agregarCompra({{ p.id }}, '{{ p.nombre }}', {{ p.precio_compra }})">
+                        <div class="item-info">
+                            <h6>{{ p.nombre }}</h6>
+                            <small>Precio compra: ${{ "%.2f"|format(p.precio_compra) }} | Stock actual: {{ p.stock
+                                }}</small>
+                        </div>
+                        <button class="btn btn-primary btn-sm">
+                            <i class="bi bi-plus"></i>
+                        </button>
+                    </div>
+                    {% endfor %}
+                    {% if not productos %}
+                    <div class="empty-state py-3">
+                        <p class="mb-0">No hay productos registrados. Crea uno primero.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Carrito de Compra -->
+    <div class="col-md-5">
+        <div class="card" style="position: sticky; top: 24px;">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-basket me-2"></i>Detalle de Compra</span>
+                <span class="badge" style="background: var(--primary);" id="badge-items-compra">0 items</span>
+            </div>
+            <div class="card-body">
+                <div id="compra-items" style="max-height: 300px; overflow-y: auto;">
+                    <div class="empty-state py-3" id="compra-vacia">
+                        <i class="bi bi-truck" style="font-size: 40px;"></i>
+                        <p class="mt-2 mb-0">Agrega productos a la compra</p>
+                    </div>
+                </div>
+
+                <div class="cart-total">
+                    <div class="total-label">TOTAL COMPRA</div>
+                    <div class="total-value" id="total-compra">$0.00</div>
+                </div>
+
+                <button class="btn btn-primary w-100 mt-3" id="btn-procesar-compra" onclick="procesarCompra()" disabled>
+                    <i class="bi bi-check-circle"></i> Registrar Compra
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let carritoCompra = [];
+
+    document.getElementById('buscar-producto-compra').addEventListener('input', function () {
+        const filtro = this.value.toLowerCase();
+        document.querySelectorAll('.producto-compra-item').forEach(item => {
+            const nombre = item.dataset.nombre.toLowerCase();
+            const descripcion = (item.dataset.descripcion || '').toLowerCase();
+            item.style.display = (nombre.includes(filtro) || descripcion.includes(filtro)) ? 'flex' : 'none';
+        });
+    });
+
+    function agregarCompra(id, nombre, precioCompra) {
+        const existente = carritoCompra.find(item => item.id === id);
+        if (existente) {
+            existente.cantidad++;
+        } else {
+            carritoCompra.push({ id, nombre, precio: precioCompra, cantidad: 1 });
+        }
+        renderCompra();
+    }
+
+    function eliminarDeCompra(id) {
+        carritoCompra = carritoCompra.filter(item => item.id !== id);
+        renderCompra();
+    }
+
+    function cambiarCantidadCompra(id, delta) {
+        const item = carritoCompra.find(i => i.id === id);
+        if (!item) return;
+        item.cantidad += delta;
+        if (item.cantidad <= 0) {
+            eliminarDeCompra(id);
+            return;
+        }
+        renderCompra();
+    }
+
+    function cambiarPrecioCompra(id, nuevoPrecio) {
+        const item = carritoCompra.find(i => i.id === id);
+        if (item) {
+            item.precio = parseFloat(nuevoPrecio) || 0;
+            renderCompra();
+        }
+    }
+
+    function renderCompra() {
+        const container = document.getElementById('compra-items');
+
+        if (carritoCompra.length === 0) {
+            container.innerHTML = `
+                <div class="empty-state py-3">
+                    <i class="bi bi-truck" style="font-size: 40px;"></i>
+                    <p class="mt-2 mb-0">Agrega productos a la compra</p>
+                </div>`;
+            document.getElementById('total-compra').textContent = '$0.00';
+            document.getElementById('badge-items-compra').textContent = '0 items';
+            document.getElementById('btn-procesar-compra').disabled = true;
+            return;
+        }
+
+        let html = '';
+        let total = 0;
+        let totalItems = 0;
+
+        carritoCompra.forEach(item => {
+            const subtotal = item.precio * item.cantidad;
+            total += subtotal;
+            totalItems += item.cantidad;
+            html += `
+                <div class="cart-item">
+                    <div class="item-info" style="flex: 1;">
+                        <h6>${item.nombre}</h6>
+                        <div class="d-flex align-items-center gap-2 mt-1">
+                            <small>P.U: $</small>
+                            <input type="number" value="${item.precio.toFixed(2)}" step="0.01" min="0"
+                                   style="width: 80px; background: var(--dark-4); border: 1px solid var(--border-color); color: var(--text-primary); border-radius: 6px; padding: 2px 6px; font-size: 12px;"
+                                   onchange="cambiarPrecioCompra(${item.id}, this.value)">
+                            <small>x ${item.cantidad} = <strong>$${subtotal.toFixed(2)}</strong></small>
+                        </div>
+                    </div>
+                    <div class="d-flex align-items-center gap-1">
+                        <button class="btn btn-outline-light btn-sm" onclick="cambiarCantidadCompra(${item.id}, -1)" style="padding: 2px 8px;">
+                            <i class="bi bi-dash"></i>
+                        </button>
+                        <span style="min-width: 30px; text-align: center; font-weight: 600;">${item.cantidad}</span>
+                        <button class="btn btn-outline-light btn-sm" onclick="cambiarCantidadCompra(${item.id}, 1)" style="padding: 2px 8px;">
+                            <i class="bi bi-plus"></i>
+                        </button>
+                        <button class="btn btn-danger btn-sm ms-1" onclick="eliminarDeCompra(${item.id})" style="padding: 2px 8px;">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+        });
+
+        container.innerHTML = html;
+        document.getElementById('total-compra').textContent = '$' + total.toFixed(2);
+        document.getElementById('badge-items-compra').textContent = totalItems + ' items';
+        document.getElementById('btn-procesar-compra').disabled = false;
+    }
+
+    function procesarCompra() {
+        if (carritoCompra.length === 0) return;
+
+        const datos = {
+            proveedor: document.getElementById('input-proveedor').value,
+            items: carritoCompra.map(item => ({
+                producto_id: item.id,
+                cantidad: item.cantidad,
+                precio_unitario: item.precio
+            }))
+        };
+
+        fetch('{{ url_for("compra_nueva") }}', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(datos)
+        })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    alert('✅ Compra registrada exitosamente. Total: $' + data.total.toFixed(2));
+                    window.location.href = '{{ url_for("compras_lista") }}';
+                } else {
+                    alert('❌ Error: ' + data.error);
+                }
+            })
+            .catch(err => {
+                alert('❌ Error al registrar la compra');
+                console.error(err);
+            });
+    }
+</script>
+{% endblock %}

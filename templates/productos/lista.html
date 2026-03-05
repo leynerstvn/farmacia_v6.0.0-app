@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+{% block title %}Productos{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1><i class="bi bi-box-seam-fill me-2"></i>Productos</h1>
+        <span class="breadcrumb">Gestión de inventario</span>
+    </div>
+    {% if current_user.is_admin %}
+    <a href="{{ url_for('producto_nuevo') }}" class="btn btn-primary" id="btn-nuevo-producto">
+        <i class="bi bi-plus-lg"></i> Nuevo Producto
+    </a>
+    {% endif %}
+</div>
+
+<!-- Barra de búsqueda -->
+<div class="row mb-4">
+    <div class="col-md-6">
+        <form method="GET" class="search-bar">
+            <i class="bi bi-search"></i>
+            <input type="text" name="buscar" class="form-control" placeholder="Buscar por producto o categoría..."
+                value="{{ buscar }}" id="input-buscar-producto">
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body p-0">
+        {% if productos %}
+        <div class="table-responsive">
+            <table class="table" id="tabla-productos">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Producto</th>
+                        <th>Categoría</th>
+                        <th>Lote</th>
+                        <th>P. Compra</th>
+                        <th>P. Venta</th>
+                        <th>Stock</th>
+                        <th>Vencimiento</th>
+                        <th>Estado</th>
+                        {% if current_user.is_admin %}
+                        <th>Acciones</th>
+                        {% endif %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for p in productos %}
+                    <tr>
+                        <td><strong>#{{ p.id }}</strong></td>
+                        <td>
+                            <div>
+                                <strong>{{ p.nombre }}</strong>
+                                {% if p.descripcion %}
+                                <br><small class="text-muted">{{ p.descripcion[:50] }}{{ '...' if p.descripcion|length >
+                                    50 }}</small>
+                                {% endif %}
+                            </div>
+                        </td>
+                        <td><span class="badge" style="background: var(--dark-4); color: var(--text-secondary);">{{
+                                p.categoria }}</span></td>
+                        <td><small class="text-muted">{{ p.lote if p.lote else '-' }}</small></td>
+                        <td>${{ "%.2f"|format(p.precio_compra) }}</td>
+                        <td><strong>${{ "%.2f"|format(p.precio_venta) }}</strong></td>
+                        <td>{{ p.stock }}</td>
+                        <td>
+                            {% if p.fecha_vencimiento %}
+                            {{ p.fecha_vencimiento.strftime('%d/%m/%Y') }}
+                            {% else %}
+                            <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if p.stock_bajo %}
+                            <span class="badge badge-stock-bajo">⚠ BAJO</span>
+                            {% else %}
+                            <span class="badge badge-stock-ok">✓ OK</span>
+                            {% endif %}
+                        </td>
+                        {% if current_user.is_admin %}
+                        <td>
+                            <div class="d-flex gap-1">
+                                <a href="{{ url_for('producto_editar', id=p.id) }}" class="btn btn-outline-light btn-sm"
+                                    title="Editar">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                <button type="button" class="btn btn-danger btn-sm" title="Eliminar"
+                                    onclick="confirmarEliminar('{{ p.nombre }}', '{{ url_for('producto_eliminar', id=p.id) }}')">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </div>
+                        </td>
+                        {% endif %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <i class="bi bi-box-seam"></i>
+            <h5>No hay productos</h5>
+            <p>Agrega tu primer producto para comenzar a gestionar el inventario.</p>
+            {% if current_user.is_admin %}
+            <a href="{{ url_for('producto_nuevo') }}" class="btn btn-primary mt-3">
+                <i class="bi bi-plus-lg"></i> Agregar Producto
+            </a>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Modal de Confirmación para Eliminar -->
+<div class="modal fade" id="modalEliminar" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title">
+                    <i class="bi bi-exclamation-triangle-fill text-danger me-2"></i>Confirmar Eliminación
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p style="font-size: 15px;">¿Estás seguro de que deseas eliminar el producto <strong
+                        id="nombre-producto-eliminar"></strong>?</p>
+                <div class="alert alert-danger py-2 px-3" style="font-size: 13px;">
+                    <i class="bi bi-info-circle me-1"></i> Esta acción no se puede deshacer. Se eliminarán todos los
+                    datos asociados a este producto.
+                </div>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-outline-light" data-bs-dismiss="modal">
+                    <i class="bi bi-x-lg"></i> Cancelar
+                </button>
+                <form id="form-eliminar" method="POST" class="d-inline">
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-trash"></i> Sí, Eliminar
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function confirmarEliminar(nombre, url) {
+        document.getElementById('nombre-producto-eliminar').textContent = nombre;
+        document.getElementById('form-eliminar').action = url;
+        new bootstrap.Modal(document.getElementById('modalEliminar')).show();
+    }
+</script>
+{% endblock %}

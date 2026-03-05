@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Editar' if producto else 'Nuevo' }} Producto{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1><i class="bi bi-{{ 'pencil' if producto else 'plus-lg' }} me-2"></i>{{ 'Editar' if producto else 'Nuevo' }}
+            Producto</h1>
+        <span class="breadcrumb">
+            <a href="{{ url_for('productos_lista') }}"
+                style="color: var(--primary-light); text-decoration: none;">Productos</a>
+            / {{ 'Editar' if producto else 'Nuevo' }}
+        </span>
+    </div>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-body p-4">
+                <form method="POST" id="form-producto">
+                    <div class="row g-3">
+                        <div class="col-md-8">
+                            <label class="form-label">Nombre del Producto *</label>
+                            <input type="text" name="nombre" class="form-control" required
+                                value="{{ producto.nombre if producto else '' }}" placeholder="Ej: Paracetamol 500mg"
+                                id="input-nombre">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Categoría</label>
+                            <select name="categoria" class="form-select" id="select-categoria">
+                                {% set categorias = ['General', 'Medicamentos', 'Vitaminas', 'Higiene', 'Cuidado
+                                Personal', 'Bebé', 'Primeros Auxilios', 'Equipos Médicos'] %}
+                                {% for cat in categorias %}
+                                <option value="{{ cat }}" {{ 'selected' if producto and producto.categoria==cat }}>{{
+                                    cat }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Descripción</label>
+                            <textarea name="descripcion" class="form-control" rows="2"
+                                placeholder="Descripción del producto (opcional)"
+                                id="input-descripcion">{{ producto.descripcion if producto else '' }}</textarea>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Lote (Opcional)</label>
+                            <input type="text" name="lote" class="form-control"
+                                value="{{ producto.lote if producto and producto.lote else '' }}"
+                                placeholder="Ej: Lote ABC-1234" id="input-lote">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Precio de Compra ($) *</label>
+                            <input type="number" name="precio_compra" class="form-control" step="0.01" min="0" required
+                                value="{{ producto.precio_compra if producto else '' }}" placeholder="0.00"
+                                id="input-precio-compra">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Precio de Venta ($) *</label>
+                            <input type="number" name="precio_venta" class="form-control" step="0.01" min="0" required
+                                value="{{ producto.precio_venta if producto else '' }}" placeholder="0.00"
+                                id="input-precio-venta">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Stock Actual</label>
+                            <input type="number" name="stock" class="form-control" min="0"
+                                value="{{ producto.stock if producto else 0 }}" id="input-stock">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Stock Mínimo</label>
+                            <input type="number" name="stock_minimo" class="form-control" min="0"
+                                value="{{ producto.stock_minimo if producto else 5 }}" id="input-stock-minimo">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label text-warning"><i class="bi bi-calendar-event me-1"></i>Vencimiento
+                                (Opcional)</label>
+                            <input type="date" name="fecha_vencimiento" class="form-control"
+                                value="{{ producto.fecha_vencimiento.strftime('%Y-%m-%d') if producto and producto.fecha_vencimiento else '' }}"
+                                id="input-fecha-vencimiento">
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-between mt-4 pt-3"
+                        style="border-top: 1px solid var(--border-color);">
+                        <a href="{{ url_for('productos_lista') }}" class="btn btn-outline-light">
+                            <i class="bi bi-arrow-left"></i> Cancelar
+                        </a>
+                        <button type="submit" class="btn btn-primary" id="btn-guardar-producto">
+                            <i class="bi bi-check-lg"></i> {{ 'Actualizar' if producto else 'Guardar' }} Producto
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,235 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1><i class="bi bi-grid-1x2-fill me-2"></i>Dashboard</h1>
+        <span class="breadcrumb">Resumen general del sistema</span>
+    </div>
+    <div>
+        <span class="pulse-dot me-2"></span>
+        <small class="text-muted">Sistema activo</small>
+    </div>
+</div>
+
+<!-- Stat Cards -->
+<div class="row g-4 mb-4">
+    <div class="col-md-3">
+        <div class="stat-card primary">
+            <div class="stat-icon"><i class="bi bi-box-seam-fill"></i></div>
+            <div class="stat-value">{{ total_productos }}</div>
+            <div class="stat-label">Total Productos</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card success">
+            <div class="stat-icon"><i class="bi bi-cart-check-fill"></i></div>
+            <div class="stat-value">{{ num_ventas_hoy }}</div>
+            <div class="stat-label">Ventas Hoy</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card info">
+            <div class="stat-icon"><i class="bi bi-currency-dollar"></i></div>
+            <div class="stat-value">${{ "%.2f"|format(total_ventas_hoy) }}</div>
+            <div class="stat-label">Ingresos Hoy</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card {{ 'danger' if productos_stock_bajo|length > 0 else 'warning' }}">
+            <div class="stat-icon"><i class="bi bi-exclamation-triangle-fill"></i></div>
+            <div class="stat-value">{{ productos_stock_bajo|length }}</div>
+            <div class="stat-label">Stock Bajo</div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Gráfico de Ventas -->
+    <div class="col-md-5">
+        <div class="card h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-graph-up me-2"></i>Ventas - Últimos 7 Días</span>
+            </div>
+            <div class="card-body">
+                <canvas id="chartVentasSemana" height="280"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Productos Próximos a Vencer -->
+    <div class="col-md-3">
+        <div class="card h-100">
+            <div class="card-header">
+                <i class="bi bi-calendar-x text-warning me-2"></i>Próximos a Vencer
+            </div>
+            <div class="card-body" style="max-height: 340px; overflow-y: auto;">
+                {% if productos_proximos_vencer %}
+                {% for p in productos_proximos_vencer %}
+                <div class="cart-item"
+                    style="border-left: 3px solid var({% if p.fecha_vencimiento <= hoy %}'--danger'{% else %}'--warning'{% endif %});">
+                    <div class="item-info">
+                        <h6>{{ p.nombre }}</h6>
+                        <small>Vence: <strong
+                                class="{% if p.fecha_vencimiento <= hoy %}text-danger{% else %}text-warning{% endif %}">
+                                {{ p.fecha_vencimiento.strftime('%d/%m/%Y') }}
+                            </strong></small>
+                    </div>
+                </div>
+                {% endfor %}
+                {% else %}
+                <div class="empty-state py-4">
+                    <i class="bi bi-calendar-check text-success" style="font-size: 30px;"></i>
+                    <h6 class="mt-2 text-muted">Nada por vencer</h6>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Productos con Stock Bajo -->
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-exclamation-triangle me-2"></i>Alertas de Stock
+            </div>
+            <div class="card-body" style="max-height: 340px; overflow-y: auto;">
+                {% if productos_stock_bajo %}
+                {% for p in productos_stock_bajo %}
+                <div class="cart-item">
+                    <div class="item-info">
+                        <h6>{{ p.nombre }}</h6>
+                        <small>Stock: <strong class="text-danger">{{ p.stock }}</strong> / Mín: {{ p.stock_minimo
+                            }}</small>
+                    </div>
+                    <span class="badge badge-stock-bajo">BAJO</span>
+                </div>
+                {% endfor %}
+                {% else %}
+                <div class="empty-state py-4">
+                    <i class="bi bi-check-circle" style="font-size: 40px; color: var(--secondary);"></i>
+                    <h6 class="mt-2">Todo en orden</h6>
+                    <p class="mb-0">No hay productos con stock bajo</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4 mt-2">
+    <!-- Top Productos -->
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-trophy-fill text-warning me-2"></i>Top 5 Productos Más Vendidos
+            </div>
+            <div class="card-body">
+                {% if top_productos %}
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Producto</th>
+                                <th>Cantidad Vendida</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for p in top_productos %}
+                            <tr>
+                                <td><strong>{{ p.nombre }}</strong></td>
+                                <td><span class="badge bg-success">{{ p.total_vendido }} unid.</span></td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="empty-state py-4">
+                    <i class="bi bi-inbox text-muted" style="font-size: 40px;"></i>
+                    <p class="mb-0 mt-2">No hay datos de ventas registrados</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Bottom Productos -->
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-arrow-down-circle-fill text-danger me-2"></i>Top 5 Productos Menos Vendidos
+            </div>
+            <div class="card-body">
+                {% if bottom_productos %}
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Producto</th>
+                                <th>Cantidad Vendida</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for p in bottom_productos %}
+                            <tr>
+                                <td><strong>{{ p.nombre }}</strong></td>
+                                <td><span class="badge bg-danger">{{ p.total_vendido }} unid.</span></td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="empty-state py-4">
+                    <i class="bi bi-inbox text-muted" style="font-size: 40px;"></i>
+                    <p class="mb-0 mt-2">No hay datos de ventas registrados</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const ventasData = {{ ventas_semana| safe }};
+    const ctx = document.getElementById('chartVentasSemana').getContext('2d');
+
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: ventasData.map(v => v.dia),
+            datasets: [{
+                label: 'Ventas ($)',
+                data: ventasData.map(v => v.total),
+                backgroundColor: 'rgba(13, 110, 253, 0.3)',
+                borderColor: 'rgba(13, 110, 253, 0.8)',
+                borderWidth: 2,
+                borderRadius: 8,
+                borderSkipped: false
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    grid: { color: 'rgba(255,255,255,0.05)' },
+                    ticks: { color: '#9aa0a6' }
+                },
+                x: {
+                    grid: { display: false },
+                    ticks: { color: '#9aa0a6' }
+                }
+            }
+        }
+    });
+</script>
+{% endblock %}
