@@ -171,7 +171,7 @@
                         <button class="btn btn-outline-light btn-sm" onclick="cambiarCantidadCompra(${item.id}, -1)" style="padding: 2px 8px;">
                             <i class="bi bi-dash"></i>
                         </button>
-                        <span style="min-width: 30px; text-align: center; font-weight: 600;">${item.cantidad}</span>
+                        <span style="min-width: 30px; text-align: center; font-weight: 600; color: white;">${item.cantidad}</span>
                         <button class="btn btn-outline-light btn-sm" onclick="cambiarCantidadCompra(${item.id}, 1)" style="padding: 2px 8px;">
                             <i class="bi bi-plus"></i>
                         </button>
@@ -184,7 +184,7 @@
         });
 
         container.innerHTML = html;
-        document.getElementById('total-compra').textContent = '$' + total.toFixed(2);
+        document.getElementById('total-compra').textContent = ''$' + total.toFixed(2);
         document.getElementById('badge-items-compra').textContent = totalItems + ' items';
         document.getElementById('btn-procesar-compra').disabled = false;
     }
@@ -209,7 +209,7 @@
             .then(res => res.json())
             .then(data => {
                 if (data.success) {
-                    alert('✅ Compra registrada exitosamente. Total: $' + data.total.toFixed(2));
+                    alert('✅ Compra registrada exitosamente. Total: '$' + data.total.toFixed(2));
                     window.location.href = '{{ url_for("compras_lista") }}';
                 } else {
                     alert('❌ Error: ' + data.error);

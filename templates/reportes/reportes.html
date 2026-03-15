@@ -95,10 +95,10 @@
             .then(res => res.json())
             .then(data => {
                 // Actualizar métricas
-                document.getElementById('reporte-total').textContent = '$' + data.total.toFixed(2);
+                document.getElementById('reporte-total').textContent = ''$' + data.total.toFixed(2);
                 document.getElementById('reporte-num-ventas').textContent = data.num_ventas;
                 const promedio = data.num_ventas > 0 ? data.total / data.num_ventas : 0;
-                document.getElementById('reporte-promedio').textContent = '$' + promedio.toFixed(2);
+                document.getElementById('reporte-promedio').textContent = ''$' + promedio.toFixed(2);
 
                 // Actualizar gráfico
                 if (chartReporte) chartReporte.destroy();
@@ -147,7 +147,7 @@
                                 padding: 12,
                                 callbacks: {
                                     label: function (context) {
-                                        return ' $' + context.parsed.y.toFixed(2);
+                                        return ' '$' + context.parsed.y.toFixed(2);
                                     }
                                 }
                             }
@@ -156,7 +156,7 @@
                             y: {
                                 beginAtZero: true,
                                 grid: { color: 'rgba(255,255,255,0.05)' },
-                                ticks: { color: '#9aa0a6', callback: v => '$' + v }
+                                ticks: { color: '#9aa0a6', callback: v => ''$' + v }
                             },
                             x: {
                                 grid: { display: false },

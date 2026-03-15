@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Boleta #{{ venta.id }}</title>
+    <style>
+        body {
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 12px;
+            width: 300px;
+            margin: 0 auto;
+            padding: 10px;
+        }
+
+        .header,
+        .footer {
+            text-align: center;
+            margin-bottom: 10px;
+        }
+
+        .info {
+            margin-bottom: 10px;
+        }
+
+        .info div {
+            margin-bottom: 2px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 10px;
+        }
+
+        th,
+        td {
+            padding: 4px 0;
+            text-align: left;
+        }
+
+        th {
+            border-bottom: 1px dashed #000;
+            border-top: 1px dashed #000;
+        }
+
+        .right {
+            text-align: right;
+        }
+
+        .total-line {
+            border-top: 1px dashed #000;
+            font-weight: bold;
+        }
+
+        @media print {
+            body {
+                margin: 0;
+                padding: 0;
+            }
+        }
+    </style>
+</head>
+
+<body onload="window.print()">
+    <div class="header">
+        <h2>BOTICA PUNTO SALUD</h2>
+        <div>L&L punto salud SAC</div>
+        <div>RUC:20615273679</div>
+        <div>Boleta Electrónica</div>
+    </div>
+
+    <div class="info">
+        <div><strong>Folio:</strong> #{{ venta.id }}</div>
+        <div><strong>Fecha:</strong> {{ venta.fecha.strftime('%d/%m/%Y %H:%M') }}</div>
+        <div><strong>Cliente:</strong> {{ venta.cliente or 'Cliente General' }}</div>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Cant</th>
+                <th>Producto</th>
+                <th class="right">Total</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for d in venta.detalles %}
+            <tr>
+                <td>{{ d.cantidad }}</td>
+                <td>{{ d.producto.nombre[:15] }}</td>
+                <td class="right">${{ "%.2f"|format(d.subtotal) }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div style="text-align: right; margin-bottom: 15px;">
+        <div class="total-line" style="padding-top: 5px;">
+            TOTAL: ${{ "%.2f"|format(venta.total) }}
+        </div>
+    </div>
+
+    <div class="footer">
+        <div>¡Gracias por su compra!</div>
+        <div style="font-size: 10px; margin-top: 10px;">Documento no válido como factura</div>
+    </div>
+</body>
+
+</html>

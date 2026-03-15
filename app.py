@@ -143,7 +143,11 @@ from sqlalchemy import func, extract, or_
 def productos_lista():
     buscar = request.args.get('buscar', '')
     if buscar:
-        productos = Producto.query.filter(or_(Producto.nombre.ilike(f'%{buscar}%'), Producto.categoria.ilike(f'%{buscar}%'))).all()
+        productos = Producto.query.filter(or_(
+            Producto.nombre.ilike(f'%{buscar}%'),
+            Producto.categoria.ilike(f'%{buscar}%'),
+            Producto.descripcion.ilike(f'%{buscar}%')
+        )).all()
     else:
         productos = Producto.query.order_by(Producto.nombre).all()
     return render_template('productos/lista.html', productos=productos, buscar=buscar)
@@ -287,11 +291,88 @@ def venta_nueva():
     return render_template('ventas/nueva.html', productos=productos)
 
 
+@app.route('/ventas/<int:id>/editar', methods=['GET', 'POST'])
+@login_required
+def venta_editar(id):
+    venta = Venta.query.get_or_404(id)
+
+    if request.method == 'POST':
+        data = request.get_json()
+        if not data or not data.get('items'):
+            return jsonify({'error': 'No se recibieron productos'}), 400
+
+        # Revertir stock de la venta anterior
+        for detalle in venta.detalles:
+            producto = Producto.query.get(detalle.producto_id)
+            if producto:
+                producto.stock += detalle.cantidad
+        
+        # Eliminar detalles anteriores
+        DetalleVenta.query.filter_by(venta_id=venta.id).delete()
+        
+        # Actualizar datos de venta y crear nuevos detalles
+        venta.cliente = data.get('cliente', 'Cliente General')
+        total_venta = 0
+        
+        for item in data['items']:
+            producto = Producto.query.get(item['producto_id'])
+            if not producto:
+                db.session.rollback()
+                return jsonify({'error': f'Producto ID {item["producto_id"]} no encontrado'}), 400
+            
+            if producto.stock < item['cantidad']:
+                db.session.rollback()
+                return jsonify({'error': f'Stock insuficiente para {producto.nombre}. Disponible: {producto.stock}'}), 400
+
+            subtotal = item['cantidad'] * producto.precio_venta
+            detalle = DetalleVenta(
+                venta_id=venta.id,
+                producto_id=producto.id,
+                cantidad=item['cantidad'],
+                precio_unitario=producto.precio_venta,
+                subtotal=subtotal
+            )
+            db.session.add(detalle)
+            producto.stock -= item['cantidad']
+            total_venta += subtotal
+
+        venta.total = total_venta
+        db.session.commit()
+        return jsonify({'success': True, 'venta_id': venta.id, 'total': total_venta})
+
+    productos = Producto.query.filter(Producto.stock > 0).order_by(Producto.nombre).all()
+    # Para la vista GET, necesitamos el estado actual del carrito
+    carrito_actual = []
+    for d in venta.detalles:
+        # Añadir al stock actual la cantidad de la venta para saber el "stockMáximo" en edición
+        stock_maximo = d.producto.stock + d.cantidad
+        carrito_actual.append({
+            'id': d.producto.id,
+            'nombre': d.producto.nombre,
+            'precio': d.precio_unitario,
+            'cantidad': d.cantidad,
+            'stockMax': stock_maximo
+        })
+    
+    return render_template('ventas/editar.html', venta=venta, productos=productos, carrito_actual=json.dumps(carrito_actual))
+
 @app.route('/ventas/<int:id>')
 @login_required
 def venta_detalle(id):
     venta = Venta.query.get_or_404(id)
     return render_template('ventas/detalle.html', venta=venta)
+
+@app.route('/ventas/<int:id>/imprimir_boleta')
+@login_required
+def venta_imprimir_boleta(id):
+    venta = Venta.query.get_or_404(id)
+    return render_template('ventas/boleta.html', venta=venta)
+
+@app.route('/ventas/<int:id>/imprimir_factura')
+@login_required
+def venta_imprimir_factura(id):
+    venta = Venta.query.get_or_404(id)
+    return render_template('ventas/factura.html', venta=venta)
 
 @app.route('/ventas/exportar')
 @login_required

@@ -42,9 +42,20 @@
                                 v.detalles|length }} items</span></td>
                         <td><strong class="text-gradient">${{ "%.2f"|format(v.total) }}</strong></td>
                         <td>
-                            <a href="{{ url_for('venta_detalle', id=v.id) }}" class="btn btn-outline-light btn-sm">
-                                <i class="bi bi-eye"></i> Ver
-                            </a>
+                            <div class="btn-group" role="group">
+                                <a href="{{ url_for('venta_detalle', id=v.id) }}" class="btn btn-outline-light btn-sm" title="Ver Detalle">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                                <a href="{{ url_for('venta_editar', id=v.id) }}" class="btn btn-outline-warning btn-sm" title="Editar Venta">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                <a href="{{ url_for('venta_imprimir_boleta', id=v.id) }}" target="_blank" class="btn btn-outline-info btn-sm" title="Imprimir Boleta">
+                                    <i class="bi bi-receipt"></i>
+                                </a>
+                                <a href="{{ url_for('venta_imprimir_factura', id=v.id) }}" target="_blank" class="btn btn-outline-primary btn-sm" title="Imprimir Factura">
+                                    <i class="bi bi-printer"></i>
+                                </a>
+                            </div>
                         </td>
                     </tr>
                     {% endfor %}

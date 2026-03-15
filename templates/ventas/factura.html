@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Factura #{{ venta.id }}</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            font-size: 14px;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            border: 1px solid #ccc;
+            padding: 30px;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            border-bottom: 2px solid #0056b3;
+            padding-bottom: 20px;
+            margin-bottom: 20px;
+        }
+        .company-info h1 {
+            color: #0056b3;
+            margin: 0 0 10px 0;
+        }
+        .invoice-details {
+            text-align: right;
+        }
+        .invoice-details h2 {
+            color: #666;
+            margin: 0 0 10px 0;
+        }
+        .billing-info {
+            margin-bottom: 30px;
+            background: #f9f9f9;
+            padding: 15px;
+            border-radius: 5px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 30px;
+        }
+        th, td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+        th {
+            background-color: #f2f2f2;
+            color: #333;
+            font-weight: bold;
+        }
+        .right {
+            text-align: right;
+        }
+        .totals {
+            width: 300px;
+            float: right;
+        }
+        .totals table th, .totals table td {
+            border: none;
+            padding: 5px 10px;
+        }
+        .totals-row {
+            font-weight: bold;
+            font-size: 1.2em;
+            border-top: 2px solid #333 !important;
+        }
+        .footer {
+            clear: both;
+            margin-top: 50px;
+            text-align: center;
+            color: #777;
+            font-size: 0.9em;
+            border-top: 1px solid #ccc;
+            padding-top: 20px;
+        }
+        @media print {
+            .container {
+                border: none;
+                padding: 0;
+            }
+            body {
+                background: white;
+            }
+        }
+    </style>
+</head>
+<body onload="window.print()">
+    <div class="container">
+        <div class="header">
+            <div class="company-info">
+                <h1>FARMACIA DEMO</h1>
+                <p>Av. Principal 123, Ciudad Central</p>
+                <p>Tel: (123) 456-7890</p>
+                <p>Email: contacto@farmaciademo.com</p>
+            </div>
+            <div class="invoice-details">
+                <h2>FACTURA</h2>
+                <p><strong>N°:</strong> #{{ "%06d"|format(venta.id) }}</p>
+                <p><strong>Fecha:</strong> {{ venta.fecha.strftime('%d/%m/%Y') }}</p>
+                <p><strong>Hora:</strong> {{ venta.fecha.strftime('%H:%M') }}</p>
+            </div>
+        </div>
+
+        <div class="billing-info">
+            <h3>Facturado a:</h3>
+            <p><strong>Cliente:</strong> {{ venta.cliente or 'Cliente General' }}</p>
+        </div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Item</th>
+                    <th>Descripción</th>
+                    <th class="right">Precio Unitario</th>
+                    <th class="right">Cantidad</th>
+                    <th class="right">Subtotal</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for d in venta.detalles %}
+                <tr>
+                    <td>{{ loop.index }}</td>
+                    <td>{{ d.producto.nombre }}</td>
+                    <td class="right">${{ "%.2f"|format(d.precio_unitario) }}</td>
+                    <td class="right">{{ d.cantidad }}</td>
+                    <td class="right">${{ "%.2f"|format(d.subtotal) }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <div class="totals">
+            <table>
+                <tr>
+                    <th>Subtotal:</th>
+                    <td class="right">${{ "%.2f"|format(venta.total / 1.19) }}</td>
+                </tr>
+                <tr>
+                    <th>IVA (19%):</th>
+                    <td class="right">${{ "%.2f"|format(venta.total - (venta.total / 1.19)) }}</td>
+                </tr>
+                <tr class="totals-row">
+                    <th>Total a Pagar:</th>
+                    <td class="right">${{ "%.2f"|format(venta.total) }}</td>
+                </tr>
+            </table>
+        </div>
+
+        <div class="footer">
+            <p>Esta es una representación impresa de un documento de prueba.</p>
+            <p>¡Gracias por su preferencia!</p>
+        </div>
+    </div>
+</body>
+</html>

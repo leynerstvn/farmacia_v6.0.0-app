@@ -1,14 +1,14 @@
 {% extends "base.html" %}
-{% block title %}Nueva Venta{% endblock %}
+{% block title %}Editar Venta #{{ venta.id }}{% endblock %}
 
 {% block content %}
 <div class="page-header">
     <div>
-        <h1><i class="bi bi-cart-plus-fill me-2"></i>Nueva Venta</h1>
+        <h1><i class="bi bi-pencil-square me-2"></i>Editar Venta #{{ venta.id }}</h1>
         <span class="breadcrumb">
             <a href="{{ url_for('ventas_lista') }}"
                 style="color: var(--primary-light); text-decoration: none;">Ventas</a>
-            / Punto de Venta
+            / Editar
         </span>
     </div>
 </div>
@@ -24,7 +24,7 @@
                 <div class="mb-3">
                     <label class="form-label">Cliente (opcional)</label>
                     <input type="text" id="input-cliente" class="form-control" placeholder="Nombre del cliente"
-                        value="Cliente General">
+                        value="{{ venta.cliente }}">
                 </div>
                 <div class="search-bar mb-3">
                     <i class="bi bi-search"></i>
@@ -33,6 +33,8 @@
                 </div>
                 <div id="lista-productos" style="max-height: 400px; overflow-y: auto;">
                     {% for p in productos %}
+                    <!-- Para los productos en la vista, su stockMax disponible es su stock actual.
+                         Si el producto ya estaba en la venta, carrito_actual ajustará su stockMax en JS. -->
                     <div class="cart-item producto-item" data-id="{{ p.id }}" data-nombre="{{ p.nombre }}"
                         data-descripcion="{{ p.descripcion|default('')|escape }}" data-precio="{{ p.precio_venta }}"
                         data-stock="{{ p.stock }}" style="cursor: pointer;"
@@ -60,7 +62,7 @@
     <div class="col-md-5">
         <div class="card" style="position: sticky; top: 24px;">
             <div class="card-header d-flex justify-content-between align-items-center">
-                <span><i class="bi bi-basket me-2"></i>Carrito de Venta</span>
+                <span><i class="bi bi-pencil-square me-2"></i>Editando Venta</span>
                 <span class="badge" style="background: var(--primary);" id="badge-items">0 items</span>
             </div>
             <div class="card-body">
@@ -76,9 +78,14 @@
                     <div class="total-value" id="total-venta">$0.00</div>
                 </div>
 
-                <button class="btn btn-success w-100 mt-3" id="btn-procesar-venta" onclick="procesarVenta()" disabled>
-                    <i class="bi bi-check-circle"></i> Procesar Venta
-                </button>
+                <div class="d-flex gap-2 mt-3">
+                    <button class="btn btn-success w-100" id="btn-procesar-venta" onclick="procesarEdicion()" disabled>
+                        <i class="bi bi-save"></i> Guardar Cambios
+                    </button>
+                    <a href="{{ url_for('venta_detalle', id=venta.id) }}" class="btn btn-secondary w-100">
+                        <i class="bi bi-x-circle"></i> Cancelar
+                    </a>
+                </div>
             </div>
         </div>
     </div>
@@ -86,8 +93,14 @@
 {% endblock %}
 
 {% block extra_js %}
+<!-- Pasamos el carrito actual desde Flask a JavaScript usando el filtro 'safe' para evitar el escape de caracteres especiales como comillas y barras invertidas -->
 <script>
-    let carrito = [];
+    let carrito = {{ carrito_actual|safe }};
+
+    // Función que se llama al inicio para renderizar el carrito precargado
+    document.addEventListener("DOMContentLoaded", function() {
+        renderCarrito();
+    });
 
     // Filtro de búsqueda
     document.getElementById('buscar-producto').addEventListener('input', function () {
@@ -101,14 +114,19 @@
 
     function agregarAlCarrito(id, nombre, precio, stockMax) {
         const existente = carrito.find(item => item.id === id);
+        
+        // Si ya está en el carrito, verificamos cuánto era su stockOriginal + cantidad de venta. 
+        // Para simplificar, usamos el stockMax del item en carrito si ya existe, si no lo extraemos de la variable stockMax.
+        let limiteStock = existente ? existente.stockMax : stockMax;
+
         if (existente) {
-            if (existente.cantidad >= stockMax) {
+            if (existente.cantidad >= limiteStock) {
                 alert('Stock insuficiente para ' + nombre);
                 return;
             }
             existente.cantidad++;
         } else {
-            carrito.push({ id, nombre, precio, cantidad: 1, stockMax });
+            carrito.push({ id, nombre, precio, cantidad: 1, stockMax: limiteStock });
         }
         renderCarrito();
     }
@@ -183,7 +201,7 @@
         document.getElementById('btn-procesar-venta').disabled = false;
     }
 
-    function procesarVenta() {
+    function procesarEdicion() {
         if (carrito.length === 0) return;
 
         const datos = {
@@ -194,7 +212,7 @@
             }))
         };
 
-        fetch('{{ url_for("venta_nueva") }}', {
+        fetch('{{ url_for("venta_editar", id=venta.id) }}', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(datos)
@@ -202,14 +220,14 @@
             .then(res => res.json())
             .then(data => {
                 if (data.success) {
-                    alert('✅ Venta registrada exitosamente. Total: '$' + data.total.toFixed(2));
-                    window.location.href = '{{ url_for("ventas_lista") }}';
+                    alert('✅ Venta actualizada exitosamente. Nuevo Total: '$' + data.total.toFixed(2));
+                    window.location.href = '{{ url_for("venta_detalle", id=venta.id) }}';
                 } else {
                     alert('❌ Error: ' + data.error);
                 }
             })
             .catch(err => {
-                alert('❌ Error al procesar la venta');
+                alert('❌ Error al actualizar la venta');
                 console.error(err);
             });
     }

@@ -20,6 +20,8 @@
     --dark-3: #27272a;
     /* Cards, form inputs (Zinc 800) */
     --dark-4: #aaaac0;
+    --dark-5: #393b3b;
+    --dark-6: #c54fb5;
     /* Hover states (Zinc 700) */
     --text-primary: #fdfdfd;
     --text-secondary: #4b4bd8;
@@ -114,7 +116,7 @@ body {
 }
 
 .sidebar-nav .nav-link:hover {
-    background: var(--dark-3);
+    background: var(--dark-6);
     color: var(--text-primary);
     transform: translateX(4px);
 }
@@ -433,7 +435,7 @@ body {
 
 .form-control:focus,
 .form-select:focus {
-    background-color: var(--dark-4);
+    background-color: var(--dark-5);
     border-color: var(--primary);
     color: var(--text-primary);
     box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.15);
