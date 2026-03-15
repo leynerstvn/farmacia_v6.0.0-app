@@ -40,7 +40,7 @@
                         <td>{{ v.cliente or 'Cliente General' }}</td>
                         <td><span class="badge" style="background: var(--dark-4); color: var(--text-secondary);">{{
                                 v.detalles|length }} items</span></td>
-                        <td><strong class="text-gradient">${{ "%.2f"|format(v.total) }}</strong></td>
+                        <td><strong class="text-gradient">S/.{{ "%.2f"|format(v.total) }}</strong></td>
                         <td>
                             <div class="btn-group" role="group">
                                 <a href="{{ url_for('venta_detalle', id=v.id) }}" class="btn btn-outline-light btn-sm" title="Ver Detalle">

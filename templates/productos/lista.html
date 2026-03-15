@@ -62,8 +62,8 @@
                         <td><span class="badge" style="background: var(--dark-4); color: var(--text-secondary);">{{
                                 p.categoria }}</span></td>
                         <td><small class="text-muted">{{ p.lote if p.lote else '-' }}</small></td>
-                        <td>${{ "%.2f"|format(p.precio_compra) }}</td>
-                        <td><strong>${{ "%.2f"|format(p.precio_venta) }}</strong></td>
+                        <td>S/.{{ "%.2f"|format(p.precio_compra) }}</td>
+                        <td><strong>S/.{{ "%.2f"|format(p.precio_venta) }}</strong></td>
                         <td>{{ p.stock }}</td>
                         <td>
                             {% if p.fecha_vencimiento %}

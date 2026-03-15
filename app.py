@@ -9,7 +9,10 @@ import json
 import pandas as pd
 from io import BytesIO
 import io
-from flask import send_file
+from flask import send_file, make_response
+import qrcode
+import base64
+from helpers import numero_a_letras
 
 
 app = Flask(__name__)
@@ -25,6 +28,8 @@ login_manager.login_message_category = 'warning'
 @login_manager.user_loader
 def load_user(user_id):
     return Usuario.query.get(int(user_id))
+
+app.jinja_env.globals.update(numero_a_letras=numero_a_letras)
 
 with app.app_context():
     # Crear usuarios por defecto si no existen
@@ -630,6 +635,29 @@ def api_productos():
         'precio_compra': p.precio_compra,
         'stock': p.stock
     } for p in productos])
+
+# ========================================================
+#  API - Generar QR
+# ========================================================
+@app.route('/api/qr/<path:data>')
+def generar_qr(data):
+    qr = qrcode.QRCode(
+        version=1,
+        error_correction=qrcode.constants.ERROR_CORRECT_L,
+        box_size=4,
+        border=0,
+    )
+    qr.add_data(data)
+    qr.make(fit=True)
+
+    img = qr.make_image(fill_color="black", back_color="white")
+    
+    img_io = BytesIO()
+    img.save(img_io, 'PNG')
+    img_io.seek(0)
+    
+    response = make_response(send_file(img_io, mimetype='image/png'))
+    return response
 
 
 if __name__ == '__main__':

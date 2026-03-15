@@ -34,7 +34,7 @@
                         <td>{{ c.proveedor or 'Proveedor General' }}</td>
                         <td><span class="badge" style="background: var(--dark-4); color: var(--text-secondary);">{{
                                 c.detalles|length }} items</span></td>
-                        <td><strong class="text-gradient">${{ "%.2f"|format(c.total) }}</strong></td>
+                        <td><strong class="text-gradient">S/.{{ "%.2f"|format(c.total) }}</strong></td>
                     </tr>
                     {% endfor %}
                 </tbody>

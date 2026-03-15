@@ -48,9 +48,9 @@
                             {% for d in venta.detalles %}
                             <tr>
                                 <td><strong>{{ d.producto.nombre }}</strong></td>
-                                <td>${{ "%.2f"|format(d.precio_unitario) }}</td>
+                                <td>S/.{{ "%.2f"|format(d.precio_unitario) }}</td>
                                 <td>{{ d.cantidad }}</td>
-                                <td><strong>${{ "%.2f"|format(d.subtotal) }}</strong></td>
+                                <td><strong>S/.{{ "%.2f"|format(d.subtotal) }}</strong></td>
                             </tr>
                             {% endfor %}
                         </tbody>
@@ -79,7 +79,7 @@
                 </div>
                 <div class="cart-total">
                     <div class="total-label">TOTAL</div>
-                    <div class="total-value">${{ "%.2f"|format(venta.total) }}</div>
+                    <div class="total-value">S/.{{ "%.2f"|format(venta.total) }}</div>
                 </div>
             </div>
         </div>

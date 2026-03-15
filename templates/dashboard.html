@@ -32,7 +32,7 @@
     <div class="col-md-3">
         <div class="stat-card info">
             <div class="stat-icon"><i class="bi bi-currency-dollar"></i></div>
-            <div class="stat-value">${{ "%.2f"|format(total_ventas_hoy) }}</div>
+            <div class="stat-value">S/.{{ "%.2f"|format(total_ventas_hoy) }}</div>
             <div class="stat-label">Ingresos Hoy</div>
         </div>
     </div>
@@ -203,7 +203,7 @@
         data: {
             labels: ventasData.map(v => v.dia),
             datasets: [{
-                label: 'Ventas ($)',
+                label: 'Ventas (S/.)',
                 data: ventasData.map(v => v.total),
                 backgroundColor: 'rgba(13, 110, 253, 0.3)',
                 borderColor: 'rgba(13, 110, 253, 0.8)',

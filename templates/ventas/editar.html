@@ -41,7 +41,7 @@
                         onclick="agregarAlCarrito({{ p.id }}, '{{ p.nombre }}', {{ p.precio_venta }}, {{ p.stock }})">
                         <div class="item-info">
                             <h6>{{ p.nombre }}</h6>
-                            <small>Precio: ${{ "%.2f"|format(p.precio_venta) }} | Stock: {{ p.stock }}</small>
+                            <small>Precio: S/.{{ "%.2f"|format(p.precio_venta) }} | Stock: {{ p.stock }}</small>
                         </div>
                         <button class="btn btn-primary btn-sm">
                             <i class="bi bi-plus"></i>
@@ -75,7 +75,7 @@
 
                 <div class="cart-total">
                     <div class="total-label">TOTAL A PAGAR</div>
-                    <div class="total-value" id="total-venta">$0.00</div>
+                    <div class="total-value" id="total-venta">S/.0.00</div>
                 </div>
 
                 <div class="d-flex gap-2 mt-3">
@@ -177,7 +177,7 @@
                 <div class="cart-item">
                     <div class="item-info" style="flex: 1;">
                         <h6>${item.nombre}</h6>
-                        <small>$${item.precio.toFixed(2)} x ${item.cantidad} = <strong>$${subtotal.toFixed(2)}</strong></small>
+                        <small>S/.${item.precio.toFixed(2)} x ${item.cantidad} = <strong>S/.${subtotal.toFixed(2)}</strong></small>
                     </div>
                     <div class="d-flex align-items-center gap-1">
                         <button class="btn btn-outline-light btn-sm" onclick="cambiarCantidad(${item.id}, -1)" style="padding: 2px 8px;">
@@ -196,7 +196,7 @@
         });
 
         container.innerHTML = html;
-        document.getElementById('total-venta').textContent = ''$' + total.toFixed(2);
+        document.getElementById('total-venta').textContent = 'S/.' + total.toFixed(2);
         document.getElementById('badge-items').textContent = totalItems + ' items';
         document.getElementById('btn-procesar-venta').disabled = false;
     }
@@ -220,7 +220,7 @@
             .then(res => res.json())
             .then(data => {
                 if (data.success) {
-                    alert('✅ Venta actualizada exitosamente. Nuevo Total: '$' + data.total.toFixed(2));
+                    alert('✅ Venta actualizada exitosamente. Nuevo Total: S/.' + data.total.toFixed(2));
                     window.location.href = '{{ url_for("venta_detalle", id=venta.id) }}';
                 } else {
                     alert('❌ Error: ' + data.error);

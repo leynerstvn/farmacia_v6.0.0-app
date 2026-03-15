@@ -30,7 +30,7 @@
     <div class="col-md-4">
         <div class="stat-card success">
             <div class="stat-icon"><i class="bi bi-currency-dollar"></i></div>
-            <div class="stat-value" id="reporte-total">$0.00</div>
+            <div class="stat-value" id="reporte-total">S/.0.00</div>
             <div class="stat-label">Total Ventas del Período</div>
         </div>
     </div>
@@ -44,7 +44,7 @@
     <div class="col-md-4">
         <div class="stat-card info">
             <div class="stat-icon"><i class="bi bi-calculator"></i></div>
-            <div class="stat-value" id="reporte-promedio">$0.00</div>
+            <div class="stat-value" id="reporte-promedio">S/.0.00</div>
             <div class="stat-label">Promedio por Venta</div>
         </div>
     </div>
@@ -95,10 +95,10 @@
             .then(res => res.json())
             .then(data => {
                 // Actualizar métricas
-                document.getElementById('reporte-total').textContent = ''$' + data.total.toFixed(2);
+                document.getElementById('reporte-total').textContent = ''S/.' + data.total.toFixed(2);
                 document.getElementById('reporte-num-ventas').textContent = data.num_ventas;
                 const promedio = data.num_ventas > 0 ? data.total / data.num_ventas : 0;
-                document.getElementById('reporte-promedio').textContent = ''$' + promedio.toFixed(2);
+                document.getElementById('reporte-promedio').textContent = ''S/.' + promedio.toFixed(2);
 
                 // Actualizar gráfico
                 if (chartReporte) chartReporte.destroy();
@@ -113,7 +113,7 @@
                     data: {
                         labels: data.labels,
                         datasets: [{
-                            label: 'Ventas ($)',
+                            label: 'Ventas (S/.)',
                             data: data.valores,
                             backgroundColor: tipo === 'anual' ? 'rgba(13, 110, 253, 0.3)' : gradient,
                             borderColor: 'rgba(13, 110, 253, 0.8)',
@@ -147,7 +147,7 @@
                                 padding: 12,
                                 callbacks: {
                                     label: function (context) {
-                                        return ' '$' + context.parsed.y.toFixed(2);
+                                        return ' 'S/.' + context.parsed.y.toFixed(2);
                                     }
                                 }
                             }
@@ -156,7 +156,7 @@
                             y: {
                                 beginAtZero: true,
                                 grid: { color: 'rgba(255,255,255,0.05)' },
-                                ticks: { color: '#9aa0a6', callback: v => ''$' + v }
+                                ticks: { color: '#9aa0a6', callback: v => ''S/.' + v }
                             },
                             x: {
                                 grid: { display: false },
@@ -186,8 +186,8 @@
                         topHTML += `
                             <div class="cart-item">
                                 <div class="item-info">
-                                    <h6>${medallas[i]} ${p.nombre}</h6>
-                                    <small>${p.cantidad} unidades · $${p.ingreso.toFixed(2)}</small>
+                                    <h6>S/.{medallas[i]} ${p.nombre}</h6>
+                                    <small>S/.{p.cantidad} unidades · $${p.ingreso.toFixed(2)}</small>
                                 </div>
                             </div>`;
                     });

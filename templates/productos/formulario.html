@@ -50,13 +50,13 @@
                                 placeholder="Ej: Lote ABC-1234" id="input-lote">
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label">Precio de Compra ($) *</label>
+                            <label class="form-label">Precio de Compra (S/.) *</label>
                             <input type="number" name="precio_compra" class="form-control" step="0.01" min="0" required
                                 value="{{ producto.precio_compra if producto else '' }}" placeholder="0.00"
                                 id="input-precio-compra">
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label">Precio de Venta ($) *</label>
+                            <label class="form-label">Precio de Venta (S/.) *</label>
                             <input type="number" name="precio_venta" class="form-control" step="0.01" min="0" required
                                 value="{{ producto.precio_venta if producto else '' }}" placeholder="0.00"
                                 id="input-precio-venta">
