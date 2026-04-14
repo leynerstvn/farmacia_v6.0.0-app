@@ -34,9 +34,12 @@
                     <tr>
                         <th>ID</th>
                         <th>Producto</th>
+                        <th>Código de Barras</th>
                         <th>Categoría</th>
                         <th>Lote</th>
+                        {% if current_user.is_admin %}
                         <th>P. Compra</th>
+                        {% endif %}
                         <th>P. Venta</th>
                         <th>Stock</th>
                         <th>Vencimiento</th>
@@ -59,10 +62,13 @@
                                 {% endif %}
                             </div>
                         </td>
+                        <td><small class="text-muted">{{ p.codigo_barras if p.codigo_barras else '-' }}</small></td>
                         <td><span class="badge" style="background: var(--dark-4); color: var(--text-secondary);">{{
                                 p.categoria }}</span></td>
                         <td><small class="text-muted">{{ p.lote if p.lote else '-' }}</small></td>
+                        {% if current_user.is_admin %}
                         <td>S/.{{ "%.2f"|format(p.precio_compra) }}</td>
+                        {% endif %}
                         <td><strong>S/.{{ "%.2f"|format(p.precio_venta) }}</strong></td>
                         <td>{{ p.stock }}</td>
                         <td>

@@ -1,6 +1,22 @@
 {% extends "base.html" %}
 {% block title %}Editar Venta #{{ venta.id }}{% endblock %}
 
+{% block extra_css %}
+<style>
+    /* Chrome, Safari, Edge, Opera */
+    input[type=number]::-webkit-outer-spin-button,
+    input[type=number]::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+
+    /* Firefox */
+    input[type=number] {
+      -moz-appearance: textfield;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="page-header">
     <div>
@@ -36,8 +52,8 @@
                     <!-- Para los productos en la vista, su stockMax disponible es su stock actual.
                          Si el producto ya estaba en la venta, carrito_actual ajustará su stockMax en JS. -->
                     <div class="cart-item producto-item" data-id="{{ p.id }}" data-nombre="{{ p.nombre }}"
-                        data-descripcion="{{ p.descripcion|default('')|escape }}" data-precio="{{ p.precio_venta }}"
-                        data-stock="{{ p.stock }}" style="cursor: pointer;"
+                        data-descripcion="{{ p.descripcion|default('')|escape }}" data-codigo="{{ p.codigo_barras|default('')|escape }}"
+                        data-precio="{{ p.precio_venta }}" data-stock="{{ p.stock }}" style="cursor: pointer;"
                         onclick="agregarAlCarrito({{ p.id }}, '{{ p.nombre }}', {{ p.precio_venta }}, {{ p.stock }})">
                         <div class="item-info">
                             <h6>{{ p.nombre }}</h6>
@@ -73,7 +89,17 @@
                     </div>
                 </div>
 
-                <div class="cart-total">
+                <div class="mb-3 mt-3">
+                    <label class="form-label text-white-50" style="font-size: 0.85rem;">Descuento (%)</label>
+                    <input type="number" id="input-descuento" class="form-control bg-dark text-white border-secondary" min="0" max="100" value="{{ venta.descuento|default(0) }}" oninput="renderCarrito()">
+                </div>
+
+                <div class="cart-total mt-2">
+                    <div class="total-label">Subtotal</div>
+                    <div class="total-value fs-5" id="subtotal-venta">S/.0.00</div>
+                </div>
+                <!-- Remove the default total formatting, we will inject it correctly from JS -->
+                <div class="cart-total mt-1">
                     <div class="total-label">TOTAL A PAGAR</div>
                     <div class="total-value" id="total-venta">S/.0.00</div>
                 </div>
@@ -108,7 +134,8 @@
         document.querySelectorAll('.producto-item').forEach(item => {
             const nombre = item.dataset.nombre.toLowerCase();
             const descripcion = (item.dataset.descripcion || '').toLowerCase();
-            item.style.display = (nombre.includes(filtro) || descripcion.includes(filtro)) ? 'flex' : 'none';
+            const codigo = (item.dataset.codigo || '').toLowerCase();
+            item.style.display = (nombre.includes(filtro) || descripcion.includes(filtro) || codigo.includes(filtro)) ? 'flex' : 'none';
         });
     });
 
@@ -139,15 +166,34 @@
     function cambiarCantidad(id, delta) {
         const item = carrito.find(i => i.id === id);
         if (!item) return;
-        item.cantidad += delta;
-        if (item.cantidad <= 0) {
+        let nuevaCantidad = item.cantidad + delta;
+        if (nuevaCantidad <= 0) {
             eliminarDelCarrito(id);
             return;
         }
-        if (item.cantidad > item.stockMax) {
-            item.cantidad = item.stockMax;
+        if (nuevaCantidad > item.stockMax) {
+            nuevaCantidad = item.stockMax;
             alert('Stock máximo alcanzado');
         }
+        item.cantidad = nuevaCantidad;
+        renderCarrito();
+    }
+
+    function actualizarCantidad(id, valor) {
+        const item = carrito.find(i => i.id === id);
+        if (!item) return;
+        
+        let nuevaCantidad = parseInt(valor);
+        if (isNaN(nuevaCantidad) || nuevaCantidad <= 0) {
+            nuevaCantidad = 1;
+        }
+        
+        if (nuevaCantidad > item.stockMax) {
+            nuevaCantidad = item.stockMax;
+            alert('Stock máximo alcanzado');
+        }
+        
+        item.cantidad = nuevaCantidad;
         renderCarrito();
     }
 
@@ -159,7 +205,8 @@
             container.innerHTML = '';
             container.appendChild(vacioDiv);
             vacioDiv.style.display = 'block';
-            document.getElementById('total-venta').textContent = '$0.00';
+            document.getElementById('subtotal-venta').textContent = 'S/.0.00';
+            document.getElementById('total-venta').textContent = 'S/.0.00';
             document.getElementById('badge-items').textContent = '0 items';
             document.getElementById('btn-procesar-venta').disabled = true;
             return;
@@ -183,7 +230,13 @@
                         <button class="btn btn-outline-light btn-sm" onclick="cambiarCantidad(${item.id}, -1)" style="padding: 2px 8px;">
                             <i class="bi bi-dash"></i>
                         </button>
-                        <span style="min-width: 30px; text-align: center; font-weight: 600; color: white;">${item.cantidad}</span>
+                        <input type="number" 
+                            class="form-control form-control-sm text-center mx-1 bg-transparent text-white border-secondary no-spin"
+                            style="width: 50px; font-weight: 600; padding: 2px 4px; box-shadow: none;" 
+                            value="${item.cantidad}" 
+                            min="1" 
+                            max="${item.stockMax}" 
+                            oninput="actualizarCantidad(${item.id}, this.value)">
                         <button class="btn btn-outline-light btn-sm" onclick="cambiarCantidad(${item.id}, 1)" style="padding: 2px 8px;">
                             <i class="bi bi-plus"></i>
                         </button>
@@ -195,8 +248,23 @@
             `;
         });
 
+        let descuentoPorcentaje = parseFloat(document.getElementById('input-descuento').value) || 0;
+        if (descuentoPorcentaje < 0) descuentoPorcentaje = 0;
+        if (descuentoPorcentaje > 100) descuentoPorcentaje = 100;
+        
+        let montoDescuento = total * (descuentoPorcentaje / 100);
+        let totalFinal = total - montoDescuento;
+
         container.innerHTML = html;
-        document.getElementById('total-venta').textContent = 'S/.' + total.toFixed(2);
+        document.getElementById('subtotal-venta').textContent = 'S/.' + total.toFixed(2);
+        
+        if (descuentoPorcentaje > 0) {
+            document.getElementById('total-venta').innerHTML = 'S/.' + totalFinal.toFixed(2) + 
+                '<div style="font-size: 0.6em; color: var(--bs-warning); line-height: 1;">(-S/.' + montoDescuento.toFixed(2) + ' / ' + descuentoPorcentaje + '%)</div>';
+        } else {
+            document.getElementById('total-venta').textContent = 'S/.' + totalFinal.toFixed(2);
+        }
+
         document.getElementById('badge-items').textContent = totalItems + ' items';
         document.getElementById('btn-procesar-venta').disabled = false;
     }
@@ -206,6 +274,7 @@
 
         const datos = {
             cliente: document.getElementById('input-cliente').value,
+            descuento: parseFloat(document.getElementById('input-descuento').value) || 0,
             items: carrito.map(item => ({
                 producto_id: item.id,
                 cantidad: item.cantidad

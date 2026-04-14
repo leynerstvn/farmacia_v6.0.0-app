@@ -34,7 +34,7 @@
                 <div id="lista-productos-compra" style="max-height: 400px; overflow-y: auto;">
                     {% for p in productos %}
                     <div class="cart-item producto-compra-item" data-nombre="{{ p.nombre }}"
-                        data-descripcion="{{ p.descripcion|default('')|escape }}" style="cursor: pointer;"
+                        data-descripcion="{{ p.descripcion|default('')|escape }}" data-codigo="{{ p.codigo_barras|default('')|escape }}" style="cursor: pointer;"
                         onclick="agregarCompra({{ p.id }}, '{{ p.nombre }}', {{ p.precio_compra }})">
                         <div class="item-info">
                             <h6>{{ p.nombre }}</h6>
@@ -94,7 +94,8 @@
         document.querySelectorAll('.producto-compra-item').forEach(item => {
             const nombre = item.dataset.nombre.toLowerCase();
             const descripcion = (item.dataset.descripcion || '').toLowerCase();
-            item.style.display = (nombre.includes(filtro) || descripcion.includes(filtro)) ? 'flex' : 'none';
+            const codigo = (item.dataset.codigo || '').toLowerCase();
+            item.style.display = (nombre.includes(filtro) || descripcion.includes(filtro) || codigo.includes(filtro)) ? 'flex' : 'none';
         });
     });
 

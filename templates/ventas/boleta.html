@@ -6,9 +6,9 @@
     <title>Boleta #{{ venta.id }}</title>
     <style>
         body {
-            font-family: 'Courier New', Courier, monospace;
+            font-family: Arial, sans-serif;
             font-size: 12px;
-            width: 300px;
+            width: 80mm;
             margin: 0 auto;
             padding: 10px;
         }
@@ -101,16 +101,16 @@
     <div class="header">
         <img src="{{ url_for('static', filename='img/logo_punto_salud.png') }}" alt="Punto Salud"
             style="max-width: 180px; margin-bottom: 5px;">
-        <div>L&L punto salud SAC</div>
-        <div>RUC:20615273679</div>
-        <div>av.pacifico F11-A1</div>
-        <div>nvo.chimbote - santa - ancash</div>
+        <div><strong>L&L Punto Salud SAC</strong></div>
+        <div><strong>RUC:20615273679</strong></div>
+        <div><strong>Av. Pacifico F11 - A1</strong></div>
+        <div><strong>Nvo.Chimbote - Santa - Ancash</strong></div>
     </div>
 
 
     <div class="header">
         <div class="text-center doc-title">
-            <div><strong>boleta Electrónica </strong></div>
+            <div><strong>Boleta Electrónica </strong></div>
             F001 - {{ "%06d"|format(venta.id) }}
         </div>
     </div>
@@ -149,23 +149,34 @@
 </table>
 
 <div class="totals-section">
+    {% set subtotal_bruto = venta.detalles|sum(attribute='subtotal') %}
+    {% if venta.descuento and venta.descuento > 0 %}
+    <div class="totals-row">
+        <div>Subtotal Bruto:</div>
+        <div>S/ {{ "%.2f"|format(subtotal_bruto) }}</div>
+    </div>
+    <div class="totals-row">
+        <div>Desc ({{ venta.descuento }}%):</div>
+        <div>-S/ {{ "%.2f"|format(subtotal_bruto - venta.total) }}</div>
+    </div>
+    {% endif %}
     <div class="totals-row bold">
-        <div>Gravada:</div>
+        <div><strong>Gravada:</strong></div>
         <div>S/ {{ "%.2f"|format(venta.total / 1.18) }}</div>
     </div>
     <div class="totals-row bold">
-        <div>IGV (18%):</div>
-        <div>S/ {{ "%.2f"|format(venta.total - (venta.total / 1.18)) }}</div>
+        <div><strong>IGV (18%):</strong></div>
+        <div><strong>S/ {{ "%.2f"|format(venta.total - (venta.total / 1.18)) }}</strong></div>
     </div>
     <div class="totals-row bold">
-        <div>Total:</div>
-        <div>S/ {{ "%.2f"|format(venta.total) }}</div>
+        <div><strong>Total:</strong></div>
+        <div><strong>S/ {{ "%.2f"|format(venta.total) }}</strong></div>
     </div>
 </div>
 
 <div class="letras-section">
-    <div>Importe en letras</div>
-    <div>{{ numero_a_letras(venta.total) }} SOLES</div>
+    <div><strong>Importe en letras</strong></div>
+    <div><strong>{{ numero_a_letras(venta.total) }} SOLES</strong></div>
 </div>
 
 <div class="qr-section">
@@ -175,9 +186,9 @@
 
 <div class="footer">
     <div></div>
-    <div>BOLETA ELECTRÓNICA.</div>
+    <div><strong>BOLETA ELECTRÓNICA.</strong></div>
     <br>
-    <div>Gracias por su compra !</div>
+    <div><strong>Gracias por su Compra !</strong></div>
 </div>
 
 

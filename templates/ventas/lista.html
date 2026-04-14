@@ -55,6 +55,13 @@
                                 <a href="{{ url_for('venta_imprimir_factura', id=v.id) }}" target="_blank" class="btn btn-outline-primary btn-sm" title="Imprimir Factura">
                                     <i class="bi bi-printer"></i>
                                 </a>
+                                {% if current_user.is_admin %}
+                                <form action="{{ url_for('venta_eliminar', id=v.id) }}" method="POST" style="display:inline;" onsubmit="return confirm('¿Está seguro de eliminar esta venta? Esta acción restaurará el stock restado y no se puede deshacer.');">
+                                    <button type="submit" class="btn btn-outline-danger btn-sm" title="Eliminar Venta">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                                {% endif %}
                             </div>
                         </td>
                     </tr>

@@ -81,13 +81,16 @@ def dashboard():
     total_productos = Producto.query.count()
     productos_stock_bajo = Producto.query.filter(Producto.stock <= Producto.stock_minimo).all()
 
-    hoy = datetime.utcnow().date()
+    hoy = datetime.now().date()
     inicio_dia = datetime.combine(hoy, datetime.min.time())
     fin_dia = datetime.combine(hoy, datetime.max.time())
 
     ventas_hoy = Venta.query.filter(Venta.fecha.between(inicio_dia, fin_dia)).all()
     total_ventas_hoy = sum(v.total for v in ventas_hoy)
     num_ventas_hoy = len(ventas_hoy)
+
+    costo_ventas_hoy = sum(d.cantidad * d.producto.precio_compra for v in ventas_hoy for d in v.detalles)
+    ganancia_hoy = total_ventas_hoy - costo_ventas_hoy
 
     # Ventas últimos 7 días para gráfico
     ventas_semana = []
@@ -131,6 +134,7 @@ def dashboard():
                            productos_stock_bajo=productos_stock_bajo,
                            total_ventas_hoy=total_ventas_hoy,
                            num_ventas_hoy=num_ventas_hoy,
+                           ganancia_hoy=ganancia_hoy,
                            ventas_semana=json.dumps(ventas_semana),
                            top_productos=top_productos,
                            bottom_productos=bottom_productos,
@@ -151,7 +155,8 @@ def productos_lista():
         productos = Producto.query.filter(or_(
             Producto.nombre.ilike(f'%{buscar}%'),
             Producto.categoria.ilike(f'%{buscar}%'),
-            Producto.descripcion.ilike(f'%{buscar}%')
+            Producto.descripcion.ilike(f'%{buscar}%'),
+            Producto.codigo_barras.ilike(f'%{buscar}%')
         )).all()
     else:
         productos = Producto.query.order_by(Producto.nombre).all()
@@ -177,6 +182,7 @@ def producto_nuevo():
             descripcion=request.form.get('descripcion', ''),
             categoria=request.form.get('categoria', 'General'),
             lote=request.form.get('lote', ''),
+            codigo_barras=request.form.get('codigo_barras', ''),
             precio_compra=float(request.form['precio_compra']),
             precio_venta=float(request.form['precio_venta']),
             stock=int(request.form.get('stock', 0)),
@@ -209,6 +215,7 @@ def producto_editar(id):
         producto.descripcion = request.form.get('descripcion', '')
         producto.categoria = request.form.get('categoria', 'General')
         producto.lote = request.form.get('lote', '')
+        producto.codigo_barras = request.form.get('codigo_barras', '')
         producto.precio_compra = float(request.form['precio_compra'])
         producto.precio_venta = float(request.form['precio_venta'])
         producto.stock = int(request.form.get('stock', 0))
@@ -261,7 +268,8 @@ def venta_nueva():
 
         venta = Venta(
             cliente=data.get('cliente', 'Cliente General'),
-            total=0
+            total=0,
+            descuento=float(data.get('descuento', 0))
         )
         db.session.add(venta)
         db.session.flush()
@@ -288,9 +296,10 @@ def venta_nueva():
             producto.stock -= item['cantidad']
             total_venta += subtotal
 
-        venta.total = total_venta
+        total_final = total_venta * (1 - venta.descuento / 100)
+        venta.total = total_final
         db.session.commit()
-        return jsonify({'success': True, 'venta_id': venta.id, 'total': total_venta})
+        return jsonify({'success': True, 'venta_id': venta.id, 'total': total_final})
 
     productos = Producto.query.filter(Producto.stock > 0).order_by(Producto.nombre).all()
     return render_template('ventas/nueva.html', productos=productos)
@@ -317,6 +326,7 @@ def venta_editar(id):
         
         # Actualizar datos de venta y crear nuevos detalles
         venta.cliente = data.get('cliente', 'Cliente General')
+        venta.descuento = float(data.get('descuento', 0))
         total_venta = 0
         
         for item in data['items']:
@@ -341,9 +351,10 @@ def venta_editar(id):
             producto.stock -= item['cantidad']
             total_venta += subtotal
 
-        venta.total = total_venta
+        total_final = total_venta * (1 - venta.descuento / 100)
+        venta.total = total_final
         db.session.commit()
-        return jsonify({'success': True, 'venta_id': venta.id, 'total': total_venta})
+        return jsonify({'success': True, 'venta_id': venta.id, 'total': total_final})
 
     productos = Producto.query.filter(Producto.stock > 0).order_by(Producto.nombre).all()
     # Para la vista GET, necesitamos el estado actual del carrito
@@ -360,6 +371,33 @@ def venta_editar(id):
         })
     
     return render_template('ventas/editar.html', venta=venta, productos=productos, carrito_actual=json.dumps(carrito_actual))
+
+@app.route('/ventas/<int:id>/eliminar', methods=['POST'])
+@login_required
+def venta_eliminar(id):
+    if not current_user.is_admin:
+        flash('No tienes permisos para realizar esta acción.', 'danger')
+        return redirect(url_for('ventas_lista'))
+        
+    venta = Venta.query.get_or_404(id)
+    try:
+        # Revertir stock
+        for detalle in venta.detalles:
+            producto = Producto.query.get(detalle.producto_id)
+            if producto:
+                producto.stock += detalle.cantidad
+        
+        # Eliminar detalles de venta
+        DetalleVenta.query.filter_by(venta_id=venta.id).delete()
+        
+        # Eliminar venta
+        db.session.delete(venta)
+        db.session.commit()
+        flash('Venta eliminada correctamente y stock restaurado.', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash('Error al eliminar la venta: ' + str(e), 'danger')
+    return redirect(url_for('ventas_lista'))
 
 @app.route('/ventas/<int:id>')
 @login_required
@@ -493,7 +531,7 @@ def reportes():
 @app.route('/api/reportes/<tipo>')
 @login_required
 def api_reportes(tipo):
-    hoy = datetime.utcnow().date()
+    hoy = datetime.now().date()
 
     if tipo == 'diario':
         # Ventas por hora del día actual
@@ -587,12 +625,16 @@ def api_reportes(tipo):
     top_productos = []
     if tipo == 'diario':
         inicio_periodo = datetime.combine(hoy, datetime.min.time())
+        fin_periodo = datetime.combine(hoy, datetime.max.time())
     elif tipo == 'semanal':
         inicio_periodo = datetime.combine(inicio_semana, datetime.min.time())
+        fin_periodo = datetime.combine(inicio_semana + timedelta(days=6), datetime.max.time())
     elif tipo == 'mensual':
         inicio_periodo = datetime.combine(inicio_mes, datetime.min.time())
+        fin_periodo = datetime.combine(fin_mes, datetime.max.time())
     else:
         inicio_periodo = datetime.combine(hoy.replace(month=1, day=1), datetime.min.time())
+        fin_periodo = datetime.combine(hoy.replace(month=12, day=31), datetime.max.time())
 
     top_query = db.session.query(
         Producto.nombre,
@@ -600,10 +642,19 @@ def api_reportes(tipo):
         func.sum(DetalleVenta.subtotal).label('total_ingreso')
     ).join(DetalleVenta, Producto.id == DetalleVenta.producto_id
     ).join(Venta, DetalleVenta.venta_id == Venta.id
-    ).filter(Venta.fecha >= inicio_periodo
+    ).filter(Venta.fecha.between(inicio_periodo, fin_periodo)
     ).group_by(Producto.id
     ).order_by(func.sum(DetalleVenta.cantidad).desc()
     ).limit(5).all()
+
+    costo_periodo = db.session.query(
+        func.coalesce(func.sum(DetalleVenta.cantidad * Producto.precio_compra), 0)
+    ).join(Venta, DetalleVenta.venta_id == Venta.id
+    ).join(Producto, DetalleVenta.producto_id == Producto.id
+    ).filter(Venta.fecha.between(inicio_periodo, fin_periodo)
+    ).scalar()
+
+    ganancia = float(total) - float(costo_periodo)
 
     for p in top_query:
         top_productos.append({
@@ -617,6 +668,7 @@ def api_reportes(tipo):
         'valores': valores,
         'total': float(total),
         'num_ventas': int(num_ventas),
+        'ganancia': float(ganancia),
         'top_productos': top_productos
     })
 
@@ -631,6 +683,7 @@ def api_productos():
     return jsonify([{
         'id': p.id,
         'nombre': p.nombre,
+        'codigo_barras': p.codigo_barras,
         'precio_venta': p.precio_venta,
         'precio_compra': p.precio_compra,
         'stock': p.stock

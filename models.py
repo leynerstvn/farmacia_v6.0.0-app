@@ -12,12 +12,13 @@ class Producto(db.Model):
     descripcion = db.Column(db.Text, nullable=True)
     categoria = db.Column(db.String(100), nullable=True, default='General')
     lote = db.Column(db.String(100), nullable=True)
+    codigo_barras = db.Column(db.String(100), nullable=True, index=True)
     precio_compra = db.Column(db.Float, nullable=False, default=0.0)
     precio_venta = db.Column(db.Float, nullable=False, default=0.0)
     stock = db.Column(db.Integer, nullable=False, default=0)
     stock_minimo = db.Column(db.Integer, nullable=False, default=5)
     fecha_vencimiento = db.Column(db.Date, nullable=True)
-    fecha_creacion = db.Column(db.DateTime, default=datetime.utcnow)
+    fecha_creacion = db.Column(db.DateTime, default=datetime.now)
 
     detalles_venta = db.relationship('DetalleVenta', backref='producto', lazy=True)
     detalles_compra = db.relationship('DetalleCompra', backref='producto', lazy=True)
@@ -37,7 +38,7 @@ class Usuario(UserMixin, db.Model):
     email = db.Column(db.String(120), unique=True, nullable=False)
     password_hash = db.Column(db.String(256), nullable=False)
     rol = db.Column(db.String(20), nullable=False, default='normal') # admin o normal
-    fecha_creacion = db.Column(db.DateTime, default=datetime.utcnow)
+    fecha_creacion = db.Column(db.DateTime, default=datetime.now)
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
@@ -57,9 +58,10 @@ class Venta(db.Model):
     __tablename__ = 'ventas'
 
     id = db.Column(db.Integer, primary_key=True)
-    fecha = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    fecha = db.Column(db.DateTime, default=datetime.now, nullable=False)
     cliente = db.Column(db.String(200), nullable=True, default='Cliente General')
     total = db.Column(db.Float, nullable=False, default=0.0)
+    descuento = db.Column(db.Float, nullable=False, default=0.0)
 
     detalles = db.relationship('DetalleVenta', backref='venta', lazy=True, cascade='all, delete-orphan')
 
@@ -85,7 +87,7 @@ class Compra(db.Model):
     __tablename__ = 'compras'
 
     id = db.Column(db.Integer, primary_key=True)
-    fecha = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    fecha = db.Column(db.DateTime, default=datetime.now, nullable=False)
     proveedor = db.Column(db.String(200), nullable=True, default='Proveedor General')
     total = db.Column(db.Float, nullable=False, default=0.0)
 

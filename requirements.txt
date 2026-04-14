@@ -1,4 +1,9 @@
-Flask==3.0.0
-Flask-SQLAlchemy==3.1.1
-PyMySQL==1.1.0
-cryptography==41.0.7
+Flask
+Flask-SQLAlchemy
+Flask-Login
+PyMySQL
+cryptography
+pandas
+openpyxl
+qrcode
+Pillow

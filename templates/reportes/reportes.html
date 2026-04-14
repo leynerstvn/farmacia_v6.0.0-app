@@ -27,25 +27,32 @@
 
 <!-- Métricas del período -->
 <div class="row g-4 mb-4">
-    <div class="col-md-4">
+    <div class="col-md-3">
         <div class="stat-card success">
             <div class="stat-icon"><i class="bi bi-currency-dollar"></i></div>
             <div class="stat-value" id="reporte-total">S/.0.00</div>
-            <div class="stat-label">Total Ventas del Período</div>
+            <div class="stat-label">Total Ventas</div>
         </div>
     </div>
-    <div class="col-md-4">
+    <div class="col-md-3">
+        <div class="stat-card warning">
+            <div class="stat-icon"><i class="bi bi-cash-coin"></i></div>
+            <div class="stat-value" id="reporte-ganancia">S/.0.00</div>
+            <div class="stat-label">Ganancia Neta</div>
+        </div>
+    </div>
+    <div class="col-md-3">
         <div class="stat-card primary">
             <div class="stat-icon"><i class="bi bi-receipt"></i></div>
             <div class="stat-value" id="reporte-num-ventas">0</div>
-            <div class="stat-label">Número de Ventas</div>
+            <div class="stat-label">N° de Ventas</div>
         </div>
     </div>
-    <div class="col-md-4">
+    <div class="col-md-3">
         <div class="stat-card info">
             <div class="stat-icon"><i class="bi bi-calculator"></i></div>
             <div class="stat-value" id="reporte-promedio">S/.0.00</div>
-            <div class="stat-label">Promedio por Venta</div>
+            <div class="stat-label">Promedio Venta</div>
         </div>
     </div>
 </div>
@@ -95,10 +102,13 @@
             .then(res => res.json())
             .then(data => {
                 // Actualizar métricas
-                document.getElementById('reporte-total').textContent = ''S/.' + data.total.toFixed(2);
+                document.getElementById('reporte-total').textContent = 'S/.' + data.total.toFixed(2);
                 document.getElementById('reporte-num-ventas').textContent = data.num_ventas;
                 const promedio = data.num_ventas > 0 ? data.total / data.num_ventas : 0;
-                document.getElementById('reporte-promedio').textContent = ''S/.' + promedio.toFixed(2);
+                document.getElementById('reporte-promedio').textContent = 'S/.' + promedio.toFixed(2);
+                if (data.ganancia !== undefined) {
+                    document.getElementById('reporte-ganancia').textContent = 'S/.' + data.ganancia.toFixed(2);
+                }
 
                 // Actualizar gráfico
                 if (chartReporte) chartReporte.destroy();
@@ -147,7 +157,7 @@
                                 padding: 12,
                                 callbacks: {
                                     label: function (context) {
-                                        return ' 'S/.' + context.parsed.y.toFixed(2);
+                                        return ' S/.' + context.parsed.y.toFixed(2);
                                     }
                                 }
                             }
@@ -156,7 +166,7 @@
                             y: {
                                 beginAtZero: true,
                                 grid: { color: 'rgba(255,255,255,0.05)' },
-                                ticks: { color: '#9aa0a6', callback: v => ''S/.' + v }
+                                ticks: { color: '#9aa0a6', callback: v => 'S/.' + v }
                             },
                             x: {
                                 grid: { display: false },
@@ -186,8 +196,8 @@
                         topHTML += `
                             <div class="cart-item">
                                 <div class="item-info">
-                                    <h6>S/.{medallas[i]} ${p.nombre}</h6>
-                                    <small>S/.{p.cantidad} unidades · $${p.ingreso.toFixed(2)}</small>
+                                    <h6>${medallas[i]} ${p.nombre}</h6>
+                                    <small>${p.cantidad} unidades · S/.${p.ingreso.toFixed(2)}</small>
                                 </div>
                             </div>`;
                     });

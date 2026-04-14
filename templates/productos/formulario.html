@@ -43,11 +43,17 @@
                                 placeholder="Descripción del producto (opcional)"
                                 id="input-descripcion">{{ producto.descripcion if producto else '' }}</textarea>
                         </div>
-                        <div class="col-12">
+                        <div class="col-md-6">
                             <label class="form-label">Lote (Opcional)</label>
                             <input type="text" name="lote" class="form-control"
                                 value="{{ producto.lote if producto and producto.lote else '' }}"
                                 placeholder="Ej: Lote ABC-1234" id="input-lote">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Código de Barras (Opcional)</label>
+                            <input type="text" name="codigo_barras" class="form-control"
+                                value="{{ producto.codigo_barras if producto and producto.codigo_barras else '' }}"
+                                placeholder="Ej: 775123456789" id="input-codigo-barras">
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Precio de Compra (S/.) *</label>
