@@ -129,13 +129,22 @@
     });
 
     // Filtro de búsqueda
-    document.getElementById('buscar-producto').addEventListener('input', function () {
-        const filtro = this.value.toLowerCase();
+    const inputBuscar = document.getElementById('buscar-producto');
+    inputBuscar.addEventListener('input', function () {
+        const filtro = this.value.toLowerCase().trim();
+        
         document.querySelectorAll('.producto-item').forEach(item => {
             const nombre = item.dataset.nombre.toLowerCase();
             const descripcion = (item.dataset.descripcion || '').toLowerCase();
             const codigo = (item.dataset.codigo || '').toLowerCase();
-            item.style.display = (nombre.includes(filtro) || descripcion.includes(filtro) || codigo.includes(filtro)) ? 'flex' : 'none';
+            
+            if (filtro === '') {
+                item.style.display = 'flex';
+            } else if (nombre.includes(filtro) || descripcion.includes(filtro) || codigo.includes(filtro)) {
+                item.style.display = 'flex';
+            } else {
+                item.style.display = 'none';
+            }
         });
     });
 
