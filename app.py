@@ -79,7 +79,8 @@ def logout():
 @login_required
 def dashboard():
     total_productos = Producto.query.count()
-    productos_stock_bajo = Producto.query.filter(Producto.stock <= Producto.stock_minimo).all()
+    productos_stock_bajo = Producto.query.filter(Producto.stock <= Producto.stock_minimo, Producto.stock > 0).all()
+    productos_sin_stock = Producto.query.filter(Producto.stock == 0).all()
 
     hoy = datetime.now().date()
     inicio_dia = datetime.combine(hoy, datetime.min.time())
@@ -132,6 +133,7 @@ def dashboard():
     return render_template('dashboard.html',
                            total_productos=total_productos,
                            productos_stock_bajo=productos_stock_bajo,
+                           productos_sin_stock=productos_sin_stock,
                            total_ventas_hoy=total_ventas_hoy,
                            num_ventas_hoy=num_ventas_hoy,
                            ganancia_hoy=ganancia_hoy,
@@ -177,6 +179,11 @@ def producto_nuevo():
         else:
             fecha_venc = None
             
+        precio_blister = request.form.get('precio_blister')
+        precio_blister = float(precio_blister) if precio_blister else 0.0
+        precio_caja = request.form.get('precio_caja')
+        precio_caja = float(precio_caja) if precio_caja else 0.0
+
         producto = Producto(
             nombre=request.form['nombre'],
             descripcion=request.form.get('descripcion', ''),
@@ -187,7 +194,9 @@ def producto_nuevo():
             precio_venta=float(request.form['precio_venta']),
             stock=int(request.form.get('stock', 0)),
             stock_minimo=int(request.form.get('stock_minimo', 5)),
-            fecha_vencimiento=fecha_venc
+            fecha_vencimiento=fecha_venc,
+            precio_blister=precio_blister,
+            precio_caja=precio_caja
         )
         db.session.add(producto)
         db.session.commit()
@@ -211,6 +220,11 @@ def producto_editar(id):
         else:
             fecha_venc = None
             
+        precio_blister = request.form.get('precio_blister')
+        precio_blister = float(precio_blister) if precio_blister else 0.0
+        precio_caja = request.form.get('precio_caja')
+        precio_caja = float(precio_caja) if precio_caja else 0.0
+
         producto.nombre = request.form['nombre']
         producto.descripcion = request.form.get('descripcion', '')
         producto.categoria = request.form.get('categoria', 'General')
@@ -221,6 +235,8 @@ def producto_editar(id):
         producto.stock = int(request.form.get('stock', 0))
         producto.stock_minimo = int(request.form.get('stock_minimo', 5))
         producto.fecha_vencimiento = fecha_venc
+        producto.precio_blister = precio_blister
+        producto.precio_caja = precio_caja
         db.session.commit()
         flash('✅ Producto actualizado exitosamente.', 'success')
         return redirect(url_for('productos_lista'))
@@ -314,12 +330,13 @@ def venta_nueva():
                 db.session.rollback()
                 return jsonify({'error': f'Stock insuficiente para {producto.nombre}. Disponible: {producto.stock}'}), 400
 
-            subtotal = item['cantidad'] * producto.precio_venta
+            precio_usado = float(item.get('precio_unitario', producto.precio_venta))
+            subtotal = item['cantidad'] * precio_usado
             detalle = DetalleVenta(
                 venta_id=venta.id,
                 producto_id=producto.id,
                 cantidad=item['cantidad'],
-                precio_unitario=producto.precio_venta,
+                precio_unitario=precio_usado,
                 subtotal=subtotal
             )
             db.session.add(detalle)
@@ -370,12 +387,13 @@ def venta_editar(id):
                 db.session.rollback()
                 return jsonify({'error': f'Stock insuficiente para {producto.nombre}. Disponible: {producto.stock}'}), 400
 
-            subtotal = item['cantidad'] * producto.precio_venta
+            precio_usado = float(item.get('precio_unitario', producto.precio_venta))
+            subtotal = item['cantidad'] * precio_usado
             detalle = DetalleVenta(
                 venta_id=venta.id,
                 producto_id=producto.id,
                 cantidad=item['cantidad'],
-                precio_unitario=producto.precio_venta,
+                precio_unitario=precio_usado,
                 subtotal=subtotal
             )
             db.session.add(detalle)
@@ -739,6 +757,9 @@ def api_productos():
         'codigo_barras': p.codigo_barras,
         'precio_venta': p.precio_venta,
         'precio_compra': p.precio_compra,
+        'precio_blister': p.precio_blister or 0,
+        'precio_caja': p.precio_caja or 0,
+        'categoria': p.categoria or 'General',
         'stock': p.stock
     } for p in productos])
 

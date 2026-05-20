@@ -44,10 +44,10 @@
         </div>
     </div>
     <div class="col">
-        <div class="stat-card {{ 'danger' if productos_stock_bajo|length > 0 else 'secondary' }}">
+        <div class="stat-card {{ 'danger' if (productos_stock_bajo|length + productos_sin_stock|length) > 0 else 'secondary' }}">
             <div class="stat-icon"><i class="bi bi-exclamation-triangle-fill"></i></div>
-            <div class="stat-value">{{ productos_stock_bajo|length }}</div>
-            <div class="stat-label">Stock Bajo</div>
+            <div class="stat-value">{{ productos_stock_bajo|length + productos_sin_stock|length }}</div>
+            <div class="stat-label">Alertas Stock</div>
         </div>
     </div>
 </div>
@@ -104,35 +104,55 @@
     </div>
 
     <!-- Productos con Stock Bajo -->
-    <div class="col-md-4">
-        <div class="card">
+    <div class="col-md-2">
+        <div class="card h-100">
             <div class="card-header">
-                <i class="bi bi-exclamation-triangle me-2"></i>Alertas de Stock
+                <i class="bi bi-exclamation-triangle text-warning me-2"></i>Stock Bajo
+                <span class="badge bg-warning text-dark ms-1">{{ productos_stock_bajo|length }}</span>
             </div>
             <div class="card-body" style="max-height: 340px; overflow-y: auto;">
                 {% if productos_stock_bajo %}
                 {% for p in productos_stock_bajo %}
-                <div class="cart-item">
+                <div class="cart-item" style="border-left: 3px solid #ffc107;">
                     <div class="item-info">
                         <h6>{{ p.nombre }}</h6>
-                        {% if p.stock == 0 %}
-                        <small>Stock: <strong class="text-danger fw-bold">Sin Stock</strong> / Mín: {{ p.stock_minimo }}</small>
-                        {% else %}
-                        <small>Stock: <strong class="text-danger">{{ p.stock }}</strong> / Mín: {{ p.stock_minimo }}</small>
-                        {% endif %}
+                        <small>Stock: <strong class="text-warning">{{ p.stock }}</strong> / Mín: {{ p.stock_minimo }}</small>
                     </div>
-                    {% if p.stock == 0 %}
-                    <span class="badge" style="background: #dc3545; font-size: 0.7rem;">SIN STOCK</span>
-                    {% else %}
                     <span class="badge badge-stock-bajo">BAJO</span>
-                    {% endif %}
                 </div>
                 {% endfor %}
                 {% else %}
                 <div class="empty-state py-4">
-                    <i class="bi bi-check-circle" style="font-size: 40px; color: var(--secondary);"></i>
-                    <h6 class="mt-2">Todo en orden</h6>
-                    <p class="mb-0">No hay productos con stock bajo</p>
+                    <i class="bi bi-check-circle text-success" style="font-size: 30px;"></i>
+                    <h6 class="mt-2 text-muted">Sin alertas</h6>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Productos Sin Stock -->
+    <div class="col-md-2">
+        <div class="card h-100">
+            <div class="card-header">
+                <i class="bi bi-x-circle text-danger me-2"></i>Sin Stock
+                <span class="badge bg-danger ms-1">{{ productos_sin_stock|length }}</span>
+            </div>
+            <div class="card-body" style="max-height: 340px; overflow-y: auto;">
+                {% if productos_sin_stock %}
+                {% for p in productos_sin_stock %}
+                <div class="cart-item" style="border-left: 3px solid #dc3545;">
+                    <div class="item-info">
+                        <h6>{{ p.nombre }}</h6>
+                        <small>Stock: <strong class="text-danger fw-bold">Sin Stock</strong> / Mín: {{ p.stock_minimo }}</small>
+                    </div>
+                    <span class="badge" style="background: #dc3545; font-size: 0.7rem;">SIN STOCK</span>
+                </div>
+                {% endfor %}
+                {% else %}
+                <div class="empty-state py-4">
+                    <i class="bi bi-check-circle text-success" style="font-size: 30px;"></i>
+                    <h6 class="mt-2 text-muted">Todo abastecido</h6>
                 </div>
                 {% endif %}
             </div>

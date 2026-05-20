@@ -62,11 +62,39 @@
                                 id="input-precio-compra">
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label">Precio de Venta (S/.) *</label>
+                            <label class="form-label" id="label-precio-venta">Precio de Venta (S/.) *</label>
                             <input type="number" name="precio_venta" class="form-control" step="0.01" min="0" required
                                 value="{{ producto.precio_venta if producto else '' }}" placeholder="0.00"
                                 id="input-precio-venta">
                         </div>
+
+                        <!-- Precios por presentación (solo Medicamentos) -->
+                        <div class="col-12" id="seccion-presentaciones" style="display: none;">
+                            <div class="card mt-2" style="background: rgba(99, 102, 241, 0.08); border: 1px dashed rgba(99, 102, 241, 0.3);">
+                                <div class="card-body py-3">
+                                    <h6 class="mb-3" style="color: var(--primary-light); font-size: 0.9rem;">
+                                        <i class="bi bi-layers me-1"></i>Precios por Presentación
+                                    </h6>
+                                    <div class="row g-3">
+                                        <div class="col-md-6">
+                                            <label class="form-label"><i class="bi bi-grid-3x3 me-1"></i>Precio por Blíster (S/.)</label>
+                                            <input type="number" name="precio_blister" class="form-control" step="0.01" min="0"
+                                                value="{{ producto.precio_blister if producto and producto.precio_blister else '' }}" placeholder="0.00"
+                                                id="input-precio-blister">
+                                            <small class="text-white-50">Opcional - Dejar vacío si no aplica</small>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label"><i class="bi bi-box me-1"></i>Precio por Caja (S/.)</label>
+                                            <input type="number" name="precio_caja" class="form-control" step="0.01" min="0"
+                                                value="{{ producto.precio_caja if producto and producto.precio_caja else '' }}" placeholder="0.00"
+                                                id="input-precio-caja">
+                                            <small class="text-white-50">Opcional - Dejar vacío si no aplica</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
                         <div class="col-md-4">
                             <label class="form-label">Stock Actual</label>
                             <input type="number" name="stock" class="form-control" min="0"
@@ -100,4 +128,27 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function togglePresentaciones() {
+        const categoria = document.getElementById('select-categoria').value;
+        const seccion = document.getElementById('seccion-presentaciones');
+        const labelPrecio = document.getElementById('label-precio-venta');
+        
+        if (categoria === 'Medicamentos') {
+            seccion.style.display = 'block';
+            labelPrecio.innerHTML = '<i class="bi bi-capsule me-1"></i>Precio por Unidad (S/.) *';
+        } else {
+            seccion.style.display = 'none';
+            labelPrecio.textContent = 'Precio de Venta (S/.) *';
+        }
+    }
+
+    document.getElementById('select-categoria').addEventListener('change', togglePresentaciones);
+    
+    // Ejecutar al cargar la página para que se muestre correctamente al editar
+    document.addEventListener('DOMContentLoaded', togglePresentaciones);
+</script>
 {% endblock %}

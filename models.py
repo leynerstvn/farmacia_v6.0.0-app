@@ -18,6 +18,8 @@ class Producto(db.Model):
     stock = db.Column(db.Integer, nullable=False, default=0)
     stock_minimo = db.Column(db.Integer, nullable=False, default=5)
     fecha_vencimiento = db.Column(db.Date, nullable=True)
+    precio_blister = db.Column(db.Float, nullable=True, default=0.0)
+    precio_caja = db.Column(db.Float, nullable=True, default=0.0)
     fecha_creacion = db.Column(db.DateTime, default=datetime.now)
 
     detalles_venta = db.relationship('DetalleVenta', backref='producto', lazy=True)

@@ -51,6 +51,39 @@
         opacity: 0.85;
         background: rgba(255,255,255,0.1);
     }
+
+    /* Modal de presentación */
+    .modal-presentacion-overlay {
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0,0,0,0.6); z-index: 9999;
+        display: flex; align-items: center; justify-content: center;
+        backdrop-filter: blur(4px);
+    }
+    .modal-presentacion {
+        background: var(--card-bg, #1e1e2e); border-radius: 16px;
+        padding: 24px; max-width: 400px; width: 90%;
+        border: 1px solid rgba(255,255,255,0.1);
+        box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    }
+    .btn-presentacion {
+        border: 2px solid rgba(255,255,255,0.15); border-radius: 12px;
+        padding: 12px 8px; text-align: center; cursor: pointer;
+        transition: all 0.2s ease; background: rgba(255,255,255,0.04);
+        color: #ccc; flex: 1;
+    }
+    .btn-presentacion:hover {
+        background: rgba(99,102,241,0.15); border-color: rgba(99,102,241,0.5);
+        color: #fff; transform: translateY(-2px);
+    }
+    .btn-presentacion .precio-pres {
+        font-size: 1.1rem; font-weight: 700; color: #6ee7b7; display: block; margin-top: 4px;
+    }
+    .btn-presentacion .nombre-pres {
+        font-size: 0.8rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;
+    }
+    .btn-presentacion.disabled-pres {
+        opacity: 0.3; pointer-events: none;
+    }
 </style>
 {% endblock %}
 
@@ -88,14 +121,25 @@
                     {% for p in productos %}
                     <div class="cart-item producto-item" data-id="{{ p.id }}" data-nombre="{{ p.nombre }}"
                         data-descripcion="{{ p.descripcion|default('')|escape }}" data-codigo="{{ p.codigo_barras|default('')|escape }}"
-                        data-precio="{{ p.precio_venta }}" data-stock="{{ p.stock }}" style="cursor: pointer;"
-                        onclick="agregarAlCarrito({{ p.id }}, '{{ p.nombre }}', {{ p.precio_venta }}, {{ p.stock }})">
+                        data-precio="{{ p.precio_venta }}" data-stock="{{ p.stock }}"
+                        data-categoria="{{ p.categoria|default('General') }}"
+                        data-precio-blister="{{ p.precio_blister or 0 }}"
+                        data-precio-caja="{{ p.precio_caja or 0 }}"
+                        style="cursor: pointer;"
+                        onclick="seleccionarProducto(this)">
                         <div class="item-info">
-                            <h6>{{ p.nombre }}</h6>
+                            <h6>{{ p.nombre }}
+                                {% if p.categoria == 'Medicamentos' %}
+                                <span class="badge" style="background: rgba(99,102,241,0.25); color: #a5b4fc; font-size: 0.6rem; vertical-align: middle;">💊 Medicamento</span>
+                                {% endif %}
+                            </h6>
                             {% if p.descripcion %}
                             <small class="text-white d-block mb-1" style="font-size: 0.75rem; opacity: 0.8;">{{ p.descripcion }}</small>
                             {% endif %}
-                            <small>Precio: S/.{{ "%.2f"|format(p.precio_venta) }} | Stock: {{ p.stock }}</small>
+                            <small>Precio: S/.{{ "%.2f"|format(p.precio_venta) }}
+                                {% if p.categoria == 'Medicamentos' and p.precio_blister %} | Blíster: S/.{{ "%.2f"|format(p.precio_blister) }}{% endif %}
+                                {% if p.categoria == 'Medicamentos' and p.precio_caja %} | Caja: S/.{{ "%.2f"|format(p.precio_caja) }}{% endif %}
+                                | Stock: {{ p.stock }}</small>
                         </div>
                         <button class="btn btn-primary btn-sm">
                             <i class="bi bi-plus"></i>
@@ -191,24 +235,87 @@
     const inputBuscar = document.getElementById('buscar-producto');
     inputBuscar.addEventListener('input', function () {
         const filtro = this.value.toLowerCase().trim();
-        
         document.querySelectorAll('.producto-item').forEach(item => {
             const nombre = item.dataset.nombre.toLowerCase();
             const descripcion = (item.dataset.descripcion || '').toLowerCase();
             const codigo = (item.dataset.codigo || '').toLowerCase();
-            
-            if (filtro === '') {
-                item.style.display = 'flex';
-            } else if (nombre.includes(filtro) || descripcion.includes(filtro) || codigo.includes(filtro)) {
-                item.style.display = 'flex';
-            } else {
-                item.style.display = 'none';
-            }
+            if (filtro === '') { item.style.display = 'flex'; }
+            else if (nombre.includes(filtro) || descripcion.includes(filtro) || codigo.includes(filtro)) { item.style.display = 'flex'; }
+            else { item.style.display = 'none'; }
         });
     });
 
-    function agregarAlCarrito(id, nombre, precio, stockMax) {
-        const existente = carrito.find(item => item.id === id);
+    // Nueva función: al hacer clic en un producto
+    function seleccionarProducto(el) {
+        const id = parseInt(el.dataset.id);
+        const nombre = el.dataset.nombre;
+        const precio = parseFloat(el.dataset.precio);
+        const stock = parseInt(el.dataset.stock);
+        const categoria = el.dataset.categoria || 'General';
+        const precioBlister = parseFloat(el.dataset.precioBlister) || 0;
+        const precioCaja = parseFloat(el.dataset.precioCaja) || 0;
+
+        // Si NO es medicamento, agregar directo
+        if (categoria !== 'Medicamentos') {
+            agregarAlCarrito(id, nombre, precio, stock, 'Unidad');
+            return;
+        }
+
+        // Si es medicamento pero no tiene precios de blíster ni caja, agregar directo
+        if (precioBlister <= 0 && precioCaja <= 0) {
+            agregarAlCarrito(id, nombre, precio, stock, 'Unidad');
+            return;
+        }
+
+        // Mostrar modal de selección de presentación
+        mostrarModalPresentacion(id, nombre, precio, stock, precioBlister, precioCaja);
+    }
+
+    function mostrarModalPresentacion(id, nombre, precioUnidad, stock, precioBlister, precioCaja) {
+        // Crear overlay
+        const overlay = document.createElement('div');
+        overlay.className = 'modal-presentacion-overlay';
+        overlay.onclick = function(e) { if (e.target === overlay) overlay.remove(); };
+
+        const blisterClass = precioBlister > 0 ? '' : 'disabled-pres';
+        const cajaClass = precioCaja > 0 ? '' : 'disabled-pres';
+
+        overlay.innerHTML = `
+            <div class="modal-presentacion">
+                <h5 class="text-white mb-1"><i class="bi bi-capsule me-2"></i>${nombre}</h5>
+                <p class="text-white-50 mb-3" style="font-size: 0.85rem;">Selecciona la presentación para esta venta:</p>
+                <div class="d-flex gap-2">
+                    <div class="btn-presentacion" onclick="elegirPresentacion(${id}, '${nombre.replace(/'/g, "\\'")}', ${precioUnidad}, ${stock}, 'Unidad'); this.closest('.modal-presentacion-overlay').remove();">
+                        <i class="bi bi-capsule" style="font-size: 1.3rem;"></i>
+                        <span class="nombre-pres d-block mt-1">Unidad</span>
+                        <span class="precio-pres">S/.${precioUnidad.toFixed(2)}</span>
+                    </div>
+                    <div class="btn-presentacion ${blisterClass}" onclick="elegirPresentacion(${id}, '${nombre.replace(/'/g, "\\'")}', ${precioBlister}, ${stock}, 'Blíster'); this.closest('.modal-presentacion-overlay').remove();">
+                        <i class="bi bi-grid-3x3" style="font-size: 1.3rem;"></i>
+                        <span class="nombre-pres d-block mt-1">Blíster</span>
+                        <span class="precio-pres">${precioBlister > 0 ? 'S/.' + precioBlister.toFixed(2) : 'N/A'}</span>
+                    </div>
+                    <div class="btn-presentacion ${cajaClass}" onclick="elegirPresentacion(${id}, '${nombre.replace(/'/g, "\\'")}', ${precioCaja}, ${stock}, 'Caja'); this.closest('.modal-presentacion-overlay').remove();">
+                        <i class="bi bi-box" style="font-size: 1.3rem;"></i>
+                        <span class="nombre-pres d-block mt-1">Caja</span>
+                        <span class="precio-pres">${precioCaja > 0 ? 'S/.' + precioCaja.toFixed(2) : 'N/A'}</span>
+                    </div>
+                </div>
+                <button class="btn btn-outline-secondary btn-sm w-100 mt-3" onclick="this.closest('.modal-presentacion-overlay').remove();">
+                    <i class="bi bi-x-lg me-1"></i>Cancelar
+                </button>
+            </div>
+        `;
+        document.body.appendChild(overlay);
+    }
+
+    function elegirPresentacion(id, nombre, precio, stock, presentacion) {
+        agregarAlCarrito(id, nombre, precio, stock, presentacion);
+    }
+
+    function agregarAlCarrito(id, nombre, precio, stockMax, presentacion) {
+        // Buscar si ya existe con la misma presentación
+        const existente = carrito.find(item => item.id === id && item.presentacion === presentacion);
         if (existente) {
             if (existente.cantidad >= stockMax) {
                 alert('Stock insuficiente para ' + nombre);
@@ -216,53 +323,38 @@
             }
             existente.cantidad++;
         } else {
-            carrito.push({ id, nombre, precio, cantidad: 1, stockMax });
+            carrito.push({ id, nombre, precio, cantidad: 1, stockMax, presentacion: presentacion || 'Unidad' });
         }
         renderCarrito();
     }
 
-    function eliminarDelCarrito(id) {
-        carrito = carrito.filter(item => item.id !== id);
+    function eliminarDelCarrito(idx) {
+        carrito.splice(idx, 1);
         renderCarrito();
     }
 
-    function cambiarCantidad(id, delta) {
-        const item = carrito.find(i => i.id === id);
+    function cambiarCantidad(idx, delta) {
+        const item = carrito[idx];
         if (!item) return;
         let nuevaCantidad = item.cantidad + delta;
-        if (nuevaCantidad <= 0) {
-            eliminarDelCarrito(id);
-            return;
-        }
-        if (nuevaCantidad > item.stockMax) {
-            nuevaCantidad = item.stockMax;
-            alert('Stock máximo alcanzado');
-        }
+        if (nuevaCantidad <= 0) { eliminarDelCarrito(idx); return; }
+        if (nuevaCantidad > item.stockMax) { nuevaCantidad = item.stockMax; alert('Stock máximo alcanzado'); }
         item.cantidad = nuevaCantidad;
         renderCarrito();
     }
 
-    function actualizarCantidad(id, valor) {
-        const item = carrito.find(i => i.id === id);
+    function actualizarCantidad(idx, valor) {
+        const item = carrito[idx];
         if (!item) return;
-        
         let nuevaCantidad = parseInt(valor);
-        if (isNaN(nuevaCantidad) || nuevaCantidad <= 0) {
-            nuevaCantidad = 1;
-        }
-        
-        if (nuevaCantidad > item.stockMax) {
-            nuevaCantidad = item.stockMax;
-            alert('Stock máximo alcanzado');
-        }
-        
+        if (isNaN(nuevaCantidad) || nuevaCantidad <= 0) nuevaCantidad = 1;
+        if (nuevaCantidad > item.stockMax) { nuevaCantidad = item.stockMax; alert('Stock máximo alcanzado'); }
         item.cantidad = nuevaCantidad;
         renderCarrito();
     }
 
     function renderCarrito() {
         const container = document.getElementById('carrito-items');
-        const vacioDiv = document.getElementById('carrito-vacio');
 
         if (carrito.length === 0) {
             container.innerHTML = `
@@ -282,31 +374,32 @@
         let total = 0;
         let totalItems = 0;
 
-        carrito.forEach(item => {
+        carrito.forEach((item, idx) => {
             const subtotal = item.precio * item.cantidad;
             total += subtotal;
             totalItems += item.cantidad;
+            const presLabel = item.presentacion
+                ? `<span class="badge ms-1" style="background:rgba(99,102,241,0.25);color:#a5b4fc;font-size:0.65rem;">${item.presentacion}</span>`
+                : '';
             html += `
                 <div class="cart-item">
                     <div class="item-info" style="flex: 1;">
-                        <h6>${item.nombre}</h6>
+                        <h6>${item.nombre} ${presLabel}</h6>
                         <small>S/.${item.precio.toFixed(2)} x ${item.cantidad} = <strong>S/.${subtotal.toFixed(2)}</strong></small>
                     </div>
                     <div class="d-flex align-items-center gap-1">
-                        <button class="btn btn-outline-light btn-sm" onclick="cambiarCantidad(${item.id}, -1)" style="padding: 2px 8px;">
+                        <button class="btn btn-outline-light btn-sm" onclick="cambiarCantidad(${idx}, -1)" style="padding: 2px 8px;">
                             <i class="bi bi-dash"></i>
                         </button>
                         <input type="number" 
                             class="form-control form-control-sm text-center mx-1 bg-transparent text-white border-secondary no-spin"
                             style="width: 50px; font-weight: 600; padding: 2px 4px; box-shadow: none;" 
-                            value="${item.cantidad}" 
-                            min="1" 
-                            max="${item.stockMax}" 
-                            oninput="actualizarCantidad(${item.id}, this.value)">
-                        <button class="btn btn-outline-light btn-sm" onclick="cambiarCantidad(${item.id}, 1)" style="padding: 2px 8px;">
+                            value="${item.cantidad}" min="1" max="${item.stockMax}" 
+                            onchange="actualizarCantidad(${idx}, this.value)">
+                        <button class="btn btn-outline-light btn-sm" onclick="cambiarCantidad(${idx}, 1)" style="padding: 2px 8px;">
                             <i class="bi bi-plus"></i>
                         </button>
-                        <button class="btn btn-danger btn-sm ms-1" onclick="eliminarDelCarrito(${item.id})" style="padding: 2px 8px;">
+                        <button class="btn btn-danger btn-sm ms-1" onclick="eliminarDelCarrito(${idx})" style="padding: 2px 8px;">
                             <i class="bi bi-trash"></i>
                         </button>
                     </div>
@@ -317,20 +410,17 @@
         let descuentoPorcentaje = parseFloat(document.getElementById('input-descuento').value) || 0;
         if (descuentoPorcentaje < 0) descuentoPorcentaje = 0;
         if (descuentoPorcentaje > 100) descuentoPorcentaje = 100;
-        
         let montoDescuento = total * (descuentoPorcentaje / 100);
         let totalFinal = total - montoDescuento;
 
         container.innerHTML = html;
         document.getElementById('subtotal-venta').textContent = 'S/.' + total.toFixed(2);
-        
         if (descuentoPorcentaje > 0) {
             document.getElementById('total-venta').innerHTML = 'S/.' + totalFinal.toFixed(2) + 
                 '<div style="font-size: 0.6em; color: var(--bs-warning); line-height: 1;">(-S/.' + montoDescuento.toFixed(2) + ' / ' + descuentoPorcentaje + '%)</div>';
         } else {
             document.getElementById('total-venta').textContent = 'S/.' + totalFinal.toFixed(2);
         }
-        
         document.getElementById('badge-items').textContent = totalItems + ' items';
         document.getElementById('btn-procesar-venta').disabled = false;
     }
@@ -344,7 +434,8 @@
             metodo_pago: metodoPagoSeleccionado,
             items: carrito.map(item => ({
                 producto_id: item.id,
-                cantidad: item.cantidad
+                cantidad: item.cantidad,
+                precio_unitario: item.precio
             }))
         };
 
