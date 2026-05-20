@@ -426,14 +426,30 @@ def venta_editar(id):
     # Para la vista GET, necesitamos el estado actual del carrito
     carrito_actual = []
     for d in venta.detalles:
-        # Añadir al stock actual la cantidad de la venta para saber el "stockMáximo" en edición
-        stock_maximo = d.producto.stock + d.cantidad
+        # Determinar presentación original
+        presentacion = 'Unidad'
+        if d.unidades_descontadas == d.cantidad * 10 and d.cantidad > 0:
+            presentacion = 'Blíster'
+        elif d.unidades_descontadas == d.cantidad * 100 and d.cantidad > 0:
+            presentacion = 'Caja'
+
+        # Añadir al stock actual la cantidad de la venta en unidades físicas para el límite de stock real
+        stock_maximo_fisico = d.producto.stock + d.unidades_descontadas
+        
+        # El stockMax en el frontend debe reflejar el límite en la "presentación" seleccionada
+        stock_max_presentacion = stock_maximo_fisico
+        if presentacion == 'Blíster':
+            stock_max_presentacion = stock_maximo_fisico // 10
+        elif presentacion == 'Caja':
+            stock_max_presentacion = stock_maximo_fisico // 100
+
         carrito_actual.append({
             'id': d.producto.id,
             'nombre': d.producto.nombre,
             'precio': d.precio_unitario,
             'cantidad': d.cantidad,
-            'stockMax': stock_maximo
+            'presentacion': presentacion,
+            'stockMax': stock_max_presentacion
         })
     
     return render_template('ventas/editar.html', venta=venta, productos=productos, carrito_actual=json.dumps(carrito_actual))
