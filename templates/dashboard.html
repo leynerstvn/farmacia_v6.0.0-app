@@ -74,14 +74,22 @@
             <div class="card-body" style="max-height: 340px; overflow-y: auto;">
                 {% if productos_proximos_vencer %}
                 {% for p in productos_proximos_vencer %}
+                {% set dias_restantes = (p.fecha_vencimiento - hoy).days %}
                 <div class="cart-item"
-                    style="border-left: 3px solid var({% if p.fecha_vencimiento <= hoy %}'--danger'{% else %}'--warning'{% endif %});">
+                    style="border-left: 3px solid {% if dias_restantes <= 0 %}#dc3545{% elif dias_restantes <= 30 %}#fd7e14{% else %}#ffc107{% endif %};">
                     <div class="item-info">
                         <h6>{{ p.nombre }}</h6>
                         <small>Vence: <strong
-                                class="{% if p.fecha_vencimiento <= hoy %}text-danger{% else %}text-warning{% endif %}">
+                                class="{% if dias_restantes <= 0 %}text-danger{% elif dias_restantes <= 30 %}text-warning{% else %}text-warning{% endif %}">
                                 {{ p.fecha_vencimiento.strftime('%d/%m/%Y') }}
                             </strong></small>
+                        {% if dias_restantes <= 0 %}
+                        <small class="text-danger d-block">Vencido hace {{ dias_restantes|abs }} dias</small>
+                        {% elif dias_restantes <= 30 %}
+                        <small class="text-warning d-block">Vence en {{ dias_restantes }} dias</small>
+                        {% else %}
+                        <small style="color: #ffc107;" class="d-block">En {{ dias_restantes }} dias</small>
+                        {% endif %}
                     </div>
                 </div>
                 {% endfor %}
@@ -107,10 +115,17 @@
                 <div class="cart-item">
                     <div class="item-info">
                         <h6>{{ p.nombre }}</h6>
-                        <small>Stock: <strong class="text-danger">{{ p.stock }}</strong> / Mín: {{ p.stock_minimo
-                            }}</small>
+                        {% if p.stock == 0 %}
+                        <small>Stock: <strong class="text-danger fw-bold">Sin Stock</strong> / Mín: {{ p.stock_minimo }}</small>
+                        {% else %}
+                        <small>Stock: <strong class="text-danger">{{ p.stock }}</strong> / Mín: {{ p.stock_minimo }}</small>
+                        {% endif %}
                     </div>
+                    {% if p.stock == 0 %}
+                    <span class="badge" style="background: #dc3545; font-size: 0.7rem;">SIN STOCK</span>
+                    {% else %}
                     <span class="badge badge-stock-bajo">BAJO</span>
+                    {% endif %}
                 </div>
                 {% endfor %}
                 {% else %}

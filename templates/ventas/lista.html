@@ -7,13 +7,77 @@
         <h1><i class="bi bi-cart-fill me-2"></i>Historial de Ventas</h1>
         <span class="breadcrumb">Registro de todas las ventas realizadas</span>
     </div>
-    <div class="d-flex gap-2">
+    <div class="d-flex align-items-center gap-2">
+        <form method="GET" action="{{ url_for('ventas_lista') }}" class="d-flex align-items-center gap-2 m-0">
+            <div class="input-group" style="width: auto;">
+                <span class="input-group-text bg-dark text-white border-secondary"><i class="bi bi-calendar-event"></i></span>
+                <input type="date" name="fecha" class="form-control bg-dark text-white border-secondary" value="{{ fecha_filtro or '' }}" onchange="this.form.submit()" style="color-scheme: dark;">
+            </div>
+            {% if fecha_filtro %}
+            <a href="{{ url_for('ventas_lista') }}" class="btn btn-outline-danger" title="Limpiar filtro" style="padding: 0.375rem 0.75rem;">
+                <i class="bi bi-x-lg"></i>
+            </a>
+            {% endif %}
+        </form>
         <a href="{{ url_for('ventas_exportar') }}" class="btn btn-outline-success" id="btn-exportar-ventas">
             <i class="bi bi-file-earmark-excel"></i> Exportar a Excel
         </a>
         <a href="{{ url_for('venta_nueva') }}" class="btn btn-success" id="btn-nueva-venta">
             <i class="bi bi-plus-lg"></i> Nueva Venta
         </a>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <!-- Efectivo -->
+    <div class="col-12 col-md-4">
+        <div class="card border-0 shadow-sm" style="background: linear-gradient(135deg, rgba(25,135,84,0.1) 0%, rgba(25,135,84,0.2) 100%); border-left: 4px solid #198754 !important;">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <p class="text-muted mb-1 text-uppercase" style="font-size: 0.85rem; font-weight: 600;">Efectivo</p>
+                        <h4 class="mb-0 text-white" style="font-weight: 700;">S/.{{ "%.2f"|format(total_efectivo|default(0)) }}</h4>
+                    </div>
+                    <div class="rounded-circle d-flex align-items-center justify-content-center" style="width: 48px; height: 48px; background: rgba(25,135,84,0.2); color: #198754;">
+                        <i class="bi bi-cash-coin fs-4"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Yape -->
+    <div class="col-12 col-md-4">
+        <div class="card border-0 shadow-sm" style="background: linear-gradient(135deg, rgba(128,0,255,0.1) 0%, rgba(128,0,255,0.2) 100%); border-left: 4px solid #8000ff !important;">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <p class="text-muted mb-1 text-uppercase" style="font-size: 0.85rem; font-weight: 600;">Yape</p>
+                        <h4 class="mb-0 text-white" style="font-weight: 700;">S/.{{ "%.2f"|format(total_yape|default(0)) }}</h4>
+                    </div>
+                    <div class="rounded-circle d-flex align-items-center justify-content-center" style="width: 48px; height: 48px; background: rgba(128,0,255,0.2); color: #8000ff;">
+                        <i class="bi bi-phone fs-4"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tarjeta -->
+    <div class="col-12 col-md-4">
+        <div class="card border-0 shadow-sm" style="background: linear-gradient(135deg, rgba(13,110,253,0.1) 0%, rgba(13,110,253,0.2) 100%); border-left: 4px solid #0d6efd !important;">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <p class="text-muted mb-1 text-uppercase" style="font-size: 0.85rem; font-weight: 600;">Tarjeta</p>
+                        <h4 class="mb-0 text-white" style="font-weight: 700;">S/.{{ "%.2f"|format(total_tarjeta|default(0)) }}</h4>
+                    </div>
+                    <div class="rounded-circle d-flex align-items-center justify-content-center" style="width: 48px; height: 48px; background: rgba(13,110,253,0.2); color: #0d6efd;">
+                        <i class="bi bi-credit-card fs-4"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -29,6 +93,7 @@
                         <th>Cliente</th>
                         <th>Productos</th>
                         <th>Total</th>
+                        <th>Pago</th>
                         <th>Acciones</th>
                     </tr>
                 </thead>
@@ -41,6 +106,22 @@
                         <td><span class="badge" style="background: var(--dark-4); color: var(--text-secondary);">{{
                                 v.detalles|length }} items</span></td>
                         <td><strong class="text-gradient">S/.{{ "%.2f"|format(v.total) }}</strong></td>
+                        <td>
+                            {% set metodo = v.metodo_pago or 'Efectivo' %}
+                            {% if metodo == 'Yape' %}
+                            <span class="badge" style="background: rgba(128,0,255,0.2); color: #000; border: 1px solid rgba(128,0,255,0.4);">
+                                <i class="bi bi-phone me-1"></i>Yape
+                            </span>
+                            {% elif metodo == 'Tarjeta' %}
+                            <span class="badge" style="background: rgba(13,110,253,0.2); color: #000; border: 1px solid rgba(13,110,253,0.4);">
+                                <i class="bi bi-credit-card me-1"></i>Tarjeta
+                            </span>
+                            {% else %}
+                            <span class="badge" style="background: rgba(25,135,84,0.2); color: #000; border: 1px solid rgba(25,135,84,0.4);">
+                                <i class="bi bi-cash-coin me-1"></i>Efectivo
+                            </span>
+                            {% endif %}
+                        </td>
                         <td>
                             <div class="btn-group" role="group">
                                 <a href="{{ url_for('venta_detalle', id=v.id) }}" class="btn btn-outline-light btn-sm" title="Ver Detalle">

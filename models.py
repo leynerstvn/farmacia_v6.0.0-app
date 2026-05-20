@@ -62,6 +62,7 @@ class Venta(db.Model):
     cliente = db.Column(db.String(200), nullable=True, default='Cliente General')
     total = db.Column(db.Float, nullable=False, default=0.0)
     descuento = db.Column(db.Float, nullable=False, default=0.0)
+    metodo_pago = db.Column(db.String(50), nullable=True, default='Efectivo')
 
     detalles = db.relationship('DetalleVenta', backref='venta', lazy=True, cascade='all, delete-orphan')
 

@@ -123,7 +123,7 @@ def dashboard():
         ventas_por_producto.c.total_vendido
     ).order_by(ventas_por_producto.c.total_vendido.asc()).limit(5).all()
 
-    umbral_vencimiento = hoy + timedelta(days=30)
+    umbral_vencimiento = hoy + timedelta(days=180)
     productos_proximos_vencer = Producto.query.filter(
         Producto.fecha_vencimiento != None,
         Producto.fecha_vencimiento <= umbral_vencimiento
@@ -254,8 +254,37 @@ def producto_eliminar(id):
 @app.route('/ventas')
 @login_required
 def ventas_lista():
-    ventas = Venta.query.order_by(Venta.fecha.desc()).all()
-    return render_template('ventas/lista.html', ventas=ventas)
+    fecha_filtro = request.args.get('fecha')
+    if fecha_filtro:
+        try:
+            fecha_obj = datetime.strptime(fecha_filtro, '%Y-%m-%d').date()
+            inicio_dia = datetime.combine(fecha_obj, datetime.min.time())
+            fin_dia = datetime.combine(fecha_obj, datetime.max.time())
+            ventas = Venta.query.filter(Venta.fecha.between(inicio_dia, fin_dia)).order_by(Venta.fecha.desc()).all()
+        except ValueError:
+            ventas = Venta.query.order_by(Venta.fecha.desc()).all()
+    else:
+        ventas = Venta.query.order_by(Venta.fecha.desc()).all()
+        
+    total_efectivo = 0.0
+    total_yape = 0.0
+    total_tarjeta = 0.0
+
+    for v in ventas:
+        metodo = v.metodo_pago or 'Efectivo'
+        if metodo == 'Yape':
+            total_yape += v.total
+        elif metodo == 'Tarjeta':
+            total_tarjeta += v.total
+        else:
+            total_efectivo += v.total
+            
+    return render_template('ventas/lista.html', 
+                           ventas=ventas, 
+                           fecha_filtro=fecha_filtro,
+                           total_efectivo=total_efectivo,
+                           total_yape=total_yape,
+                           total_tarjeta=total_tarjeta)
 
 
 @app.route('/ventas/nueva', methods=['GET', 'POST'])
@@ -269,7 +298,8 @@ def venta_nueva():
         venta = Venta(
             cliente=data.get('cliente', 'Cliente General'),
             total=0,
-            descuento=float(data.get('descuento', 0))
+            descuento=float(data.get('descuento', 0)),
+            metodo_pago=data.get('metodo_pago', 'Efectivo')
         )
         db.session.add(venta)
         db.session.flush()
@@ -327,6 +357,7 @@ def venta_editar(id):
         # Actualizar datos de venta y crear nuevos detalles
         venta.cliente = data.get('cliente', 'Cliente General')
         venta.descuento = float(data.get('descuento', 0))
+        venta.metodo_pago = data.get('metodo_pago', 'Efectivo')
         total_venta = 0
         
         for item in data['items']:
@@ -573,12 +604,17 @@ def api_reportes(tipo):
         ).count()
 
     elif tipo == 'mensual':
-        # Ventas por día del mes actual
-        inicio_mes = hoy.replace(day=1)
-        if hoy.month == 12:
-            fin_mes = hoy.replace(year=hoy.year + 1, month=1, day=1) - timedelta(days=1)
+        # Acepta mes y anio como parámetros opcionales (?mes=5&anio=2026)
+        mes_param = request.args.get('mes', type=int, default=hoy.month)
+        anio_param = request.args.get('anio', type=int, default=hoy.year)
+        try:
+            inicio_mes = hoy.replace(year=anio_param, month=mes_param, day=1)
+        except ValueError:
+            inicio_mes = hoy.replace(day=1)
+        if inicio_mes.month == 12:
+            fin_mes = inicio_mes.replace(year=inicio_mes.year + 1, month=1, day=1) - timedelta(days=1)
         else:
-            fin_mes = hoy.replace(month=hoy.month + 1, day=1) - timedelta(days=1)
+            fin_mes = inicio_mes.replace(month=inicio_mes.month + 1, day=1) - timedelta(days=1)
 
         labels = []
         valores = []
@@ -663,13 +699,30 @@ def api_reportes(tipo):
             'ingreso': float(p.total_ingreso)
         })
 
+    # Ventas por método de pago
+    ventas_por_metodo = db.session.query(
+        func.coalesce(Venta.metodo_pago, 'Efectivo').label('metodo'),
+        func.sum(Venta.total).label('total')
+    ).filter(Venta.fecha.between(inicio_periodo, fin_periodo)
+    ).group_by(func.coalesce(Venta.metodo_pago, 'Efectivo')).all()
+
+    pagos = {
+        'Efectivo': 0.0,
+        'Yape': 0.0,
+        'Tarjeta': 0.0
+    }
+    for m in ventas_por_metodo:
+        if m.metodo in pagos:
+            pagos[m.metodo] = float(m.total)
+
     return jsonify({
         'labels': labels,
         'valores': valores,
         'total': float(total),
         'num_ventas': int(num_ventas),
         'ganancia': float(ganancia),
-        'top_productos': top_productos
+        'top_productos': top_productos,
+        'pagos': pagos
     })
 
 

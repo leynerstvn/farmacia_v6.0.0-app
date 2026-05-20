@@ -25,6 +25,39 @@
     </button>
 </div>
 
+<!-- Selector de Mes/Año (solo visible en modo mensual) -->
+<div id="selector-mes-anio" style="display:none; margin-bottom: 20px;">
+    <div class="card" style="border: 1px solid rgba(99,102,241,0.3); background: rgba(99,102,241,0.05);">
+        <div class="card-body py-3">
+            <div class="d-flex align-items-center gap-3 flex-wrap">
+                <span style="font-size: 0.85rem; font-weight: 600; color: var(--primary-light);">
+                    <i class="bi bi-funnel me-1"></i>Seleccionar período:
+                </span>
+                <select id="select-mes" class="form-select" style="width: auto; min-width: 140px; display: inline-block;">
+                    <option value="1">Enero</option>
+                    <option value="2">Febrero</option>
+                    <option value="3">Marzo</option>
+                    <option value="4">Abril</option>
+                    <option value="5">Mayo</option>
+                    <option value="6">Junio</option>
+                    <option value="7">Julio</option>
+                    <option value="8">Agosto</option>
+                    <option value="9">Septiembre</option>
+                    <option value="10">Octubre</option>
+                    <option value="11">Noviembre</option>
+                    <option value="12">Diciembre</option>
+                </select>
+                <select id="select-anio" class="form-select" style="width: auto; min-width: 100px; display: inline-block;">
+                </select>
+                <button class="btn btn-primary btn-sm" onclick="aplicarFiltroMes()">
+                    <i class="bi bi-check-lg me-1"></i>Aplicar
+                </button>
+                <span id="label-periodo-activo" style="font-size: 0.82rem; color: var(--text-secondary2); margin-left: 8px;"></span>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Métricas del período -->
 <div class="row g-4 mb-4">
     <div class="col-md-3">
@@ -53,6 +86,37 @@
             <div class="stat-icon"><i class="bi bi-calculator"></i></div>
             <div class="stat-value" id="reporte-promedio">S/.0.00</div>
             <div class="stat-label">Promedio Venta</div>
+        </div>
+    </div>
+</div>
+
+<!-- Métodos de pago -->
+<div class="row g-4 mb-4">
+    <div class="col-md-4">
+        <div class="stat-card" style="border-left: 4px solid #198754; background: rgba(25, 135, 84, 0.05); padding: 15px 20px;">
+            <div class="d-flex align-items-center mb-2">
+                <i class="bi bi-cash-coin me-2" style="font-size: 1.5rem; color: #198754;"></i>
+                <h6 class="mb-0 text-muted" style="text-transform: uppercase; font-size: 11px; font-weight: 700; letter-spacing: 1px;">Efectivo</h6>
+            </div>
+            <h4 class="mb-0" id="reporte-efectivo" style="font-weight: 800;">S/.0.00</h4>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="stat-card" style="border-left: 4px solid #8000ff; background: rgba(128, 0, 255, 0.05); padding: 15px 20px;">
+            <div class="d-flex align-items-center mb-2">
+                <i class="bi bi-phone me-2" style="font-size: 1.5rem; color: #8000ff;"></i>
+                <h6 class="mb-0 text-muted" style="text-transform: uppercase; font-size: 11px; font-weight: 700; letter-spacing: 1px;">Yape</h6>
+            </div>
+            <h4 class="mb-0" id="reporte-yape" style="font-weight: 800;">S/.0.00</h4>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="stat-card" style="border-left: 4px solid #0d6efd; background: rgba(13, 110, 253, 0.05); padding: 15px 20px;">
+            <div class="d-flex align-items-center mb-2">
+                <i class="bi bi-credit-card me-2" style="font-size: 1.5rem; color: #0d6efd;"></i>
+                <h6 class="mb-0 text-muted" style="text-transform: uppercase; font-size: 11px; font-weight: 700; letter-spacing: 1px;">Tarjeta</h6>
+            </div>
+            <h4 class="mb-0" id="reporte-tarjeta" style="font-weight: 800;">S/.0.00</h4>
         </div>
     </div>
 </div>
@@ -91,14 +155,46 @@
 {% block extra_js %}
 <script>
     let chartReporte = null;
+    const meses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 
-    function cargarReporte(tipo) {
+    // Poblar selector de año (últimos 5 años)
+    (function() {
+        const anioActual = new Date().getFullYear();
+        const mesActual = new Date().getMonth() + 1;
+        const sel = document.getElementById('select-anio');
+        for (let a = anioActual; a >= anioActual - 4; a--) {
+            const opt = document.createElement('option');
+            opt.value = a;
+            opt.textContent = a;
+            sel.appendChild(opt);
+        }
+        // Preseleccionar mes y año actuales
+        document.getElementById('select-mes').value = mesActual;
+        document.getElementById('select-anio').value = anioActual;
+    })();
+
+    function cargarReporte(tipo, mes, anio) {
+        // Mostrar/ocultar selector de mes
+        document.getElementById('selector-mes-anio').style.display = tipo === 'mensual' ? 'block' : 'none';
+
         // Actualizar tabs
         document.querySelectorAll('.report-tab').forEach(tab => {
             tab.classList.toggle('active', tab.dataset.tipo === tipo);
         });
 
-        fetch(`/api/reportes/${tipo}`)
+        let url = `/api/reportes/${tipo}`;
+        if (tipo === 'mensual') {
+            const m = mes || document.getElementById('select-mes').value;
+            const a = anio || document.getElementById('select-anio').value;
+            url += `?mes=${m}&anio=${a}`;
+            // Actualizar etiqueta de período activo
+            document.getElementById('label-periodo-activo').textContent =
+                `Mostrando: ${meses[parseInt(m)-1]} ${a}`;
+        } else {
+            document.getElementById('label-periodo-activo').textContent = '';
+        }
+
+        fetch(url)
             .then(res => res.json())
             .then(data => {
                 // Actualizar métricas
@@ -108,6 +204,13 @@
                 document.getElementById('reporte-promedio').textContent = 'S/.' + promedio.toFixed(2);
                 if (data.ganancia !== undefined) {
                     document.getElementById('reporte-ganancia').textContent = 'S/.' + data.ganancia.toFixed(2);
+                }
+
+                // Actualizar métodos de pago
+                if (data.pagos) {
+                    document.getElementById('reporte-efectivo').textContent = 'S/.' + (data.pagos['Efectivo'] || 0).toFixed(2);
+                    document.getElementById('reporte-yape').textContent = 'S/.' + (data.pagos['Yape'] || 0).toFixed(2);
+                    document.getElementById('reporte-tarjeta').textContent = 'S/.' + (data.pagos['Tarjeta'] || 0).toFixed(2);
                 }
 
                 // Actualizar gráfico
@@ -207,6 +310,12 @@
             .catch(err => {
                 console.error('Error cargando reporte:', err);
             });
+    }
+
+    function aplicarFiltroMes() {
+        const mes = document.getElementById('select-mes').value;
+        const anio = document.getElementById('select-anio').value;
+        cargarReporte('mensual', mes, anio);
     }
 
     // Cargar reporte diario al inicio

@@ -14,6 +14,43 @@
     input[type=number] {
       -moz-appearance: textfield;
     }
+
+    /* Botones de método de pago */
+    .btn-pago {
+        border: 2px solid transparent;
+        font-size: 0.82rem;
+        font-weight: 600;
+        padding: 6px 4px;
+        border-radius: 8px;
+        transition: all 0.2s ease;
+        opacity: 0.55;
+        background: rgba(255,255,255,0.06);
+        color: #ccc;
+    }
+    .btn-pago.active {
+        opacity: 1;
+        color: #fff;
+        box-shadow: 0 0 8px 2px rgba(255,255,255,0.15);
+    }
+    .btn-pago-efectivo.active {
+        background: rgba(25, 135, 84, 0.3);
+        border-color: #198754;
+        color: #6ae89f;
+    }
+    .btn-pago-yape.active {
+        background: rgba(128, 0, 255, 0.25);
+        border-color: #8000ff;
+        color: #c17aff;
+    }
+    .btn-pago-tarjeta.active {
+        background: rgba(13, 110, 253, 0.25);
+        border-color: #0d6efd;
+        color: #6ea8fe;
+    }
+    .btn-pago:hover:not(.active) {
+        opacity: 0.85;
+        background: rgba(255,255,255,0.1);
+    }
 </style>
 {% endblock %}
 
@@ -57,6 +94,9 @@
                         onclick="agregarAlCarrito({{ p.id }}, '{{ p.nombre }}', {{ p.precio_venta }}, {{ p.stock }})">
                         <div class="item-info">
                             <h6>{{ p.nombre }}</h6>
+                            {% if p.descripcion %}
+                            <small class="text-white d-block mb-1" style="font-size: 0.75rem; opacity: 0.8;">{{ p.descripcion }}</small>
+                            {% endif %}
                             <small>Precio: S/.{{ "%.2f"|format(p.precio_venta) }} | Stock: {{ p.stock }}</small>
                         </div>
                         <button class="btn btn-primary btn-sm">
@@ -94,6 +134,28 @@
                     <input type="number" id="input-descuento" class="form-control bg-dark text-white border-secondary" min="0" max="100" value="{{ venta.descuento|default(0) }}" oninput="renderCarrito()">
                 </div>
 
+                <!-- Método de Pago -->
+                <div class="mb-3">
+                    <label class="form-label text-white-50" style="font-size: 0.85rem;">Método de Pago</label>
+                    <div class="d-flex gap-2">
+                        <button type="button" id="btn-pago-efectivo"
+                            class="btn btn-pago btn-pago-efectivo {% if venta.metodo_pago == 'Efectivo' or not venta.metodo_pago %}active{% endif %} flex-fill"
+                            onclick="seleccionarPago('Efectivo')">
+                            <i class="bi bi-cash-coin me-1"></i>Efectivo
+                        </button>
+                        <button type="button" id="btn-pago-yape"
+                            class="btn btn-pago btn-pago-yape {% if venta.metodo_pago == 'Yape' %}active{% endif %} flex-fill"
+                            onclick="seleccionarPago('Yape')">
+                            <i class="bi bi-phone me-1"></i>Yape
+                        </button>
+                        <button type="button" id="btn-pago-tarjeta"
+                            class="btn btn-pago btn-pago-tarjeta {% if venta.metodo_pago == 'Tarjeta' %}active{% endif %} flex-fill"
+                            onclick="seleccionarPago('Tarjeta')">
+                            <i class="bi bi-credit-card me-1"></i>Tarjeta
+                        </button>
+                    </div>
+                </div>
+
                 <div class="cart-total mt-2">
                     <div class="total-label">Subtotal</div>
                     <div class="total-value fs-5" id="subtotal-venta">S/.0.00</div>
@@ -122,6 +184,16 @@
 <!-- Pasamos el carrito actual desde Flask a JavaScript usando el filtro 'safe' para evitar el escape de caracteres especiales como comillas y barras invertidas -->
 <script>
     let carrito = {{ carrito_actual|safe }};
+    let metodoPagoSeleccionado = '{{ venta.metodo_pago or "Efectivo" }}';
+
+    function seleccionarPago(metodo) {
+        metodoPagoSeleccionado = metodo;
+        document.getElementById('btn-pago-efectivo').classList.remove('active');
+        document.getElementById('btn-pago-yape').classList.remove('active');
+        document.getElementById('btn-pago-tarjeta').classList.remove('active');
+        const ids = { 'Efectivo': 'btn-pago-efectivo', 'Yape': 'btn-pago-yape', 'Tarjeta': 'btn-pago-tarjeta' };
+        document.getElementById(ids[metodo]).classList.add('active');
+    }
 
     // Función que se llama al inicio para renderizar el carrito precargado
     document.addEventListener("DOMContentLoaded", function() {
@@ -211,9 +283,12 @@
         const vacioDiv = document.getElementById('carrito-vacio');
 
         if (carrito.length === 0) {
-            container.innerHTML = '';
-            container.appendChild(vacioDiv);
-            vacioDiv.style.display = 'block';
+            container.innerHTML = `
+                <div class="empty-state py-3" id="carrito-vacio">
+                    <i class="bi bi-basket" style="font-size: 40px;"></i>
+                    <p class="mt-2 mb-0">Agrega productos al carrito</p>
+                </div>
+            `;
             document.getElementById('subtotal-venta').textContent = 'S/.0.00';
             document.getElementById('total-venta').textContent = 'S/.0.00';
             document.getElementById('badge-items').textContent = '0 items';
@@ -284,6 +359,7 @@
         const datos = {
             cliente: document.getElementById('input-cliente').value,
             descuento: parseFloat(document.getElementById('input-descuento').value) || 0,
+            metodo_pago: metodoPagoSeleccionado,
             items: carrito.map(item => ({
                 producto_id: item.id,
                 cantidad: item.cantidad
