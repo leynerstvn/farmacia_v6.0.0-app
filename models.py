@@ -79,11 +79,12 @@ class DetalleVenta(db.Model):
     venta_id = db.Column(db.Integer, db.ForeignKey('ventas.id'), nullable=False)
     producto_id = db.Column(db.Integer, db.ForeignKey('productos.id'), nullable=False)
     cantidad = db.Column(db.Integer, nullable=False)
+    unidades_descontadas = db.Column(db.Integer, nullable=False, default=0)
     precio_unitario = db.Column(db.Float, nullable=False)
     subtotal = db.Column(db.Float, nullable=False)
 
     def __repr__(self):
-        return f'<DetalleVenta {self.producto_id} x{self.cantidad}>'
+        return f'<DetalleVenta {self.producto_id} x{self.cantidad} ({self.unidades_descontadas} unid.)>'
 
 
 class Compra(db.Model):

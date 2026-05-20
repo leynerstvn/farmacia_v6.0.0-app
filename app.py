@@ -326,9 +326,17 @@ def venta_nueva():
             if not producto:
                 db.session.rollback()
                 return jsonify({'error': f'Producto ID {item["producto_id"]} no encontrado'}), 400
-            if producto.stock < item['cantidad']:
+
+            presentacion = item.get('presentacion', 'Unidad')
+            unidades_fisicas = item['cantidad']
+            if presentacion == 'Blíster':
+                unidades_fisicas = item['cantidad'] * 10
+            elif presentacion == 'Caja':
+                unidades_fisicas = item['cantidad'] * 100
+
+            if producto.stock < unidades_fisicas:
                 db.session.rollback()
-                return jsonify({'error': f'Stock insuficiente para {producto.nombre}. Disponible: {producto.stock}'}), 400
+                return jsonify({'error': f'Stock insuficiente para {producto.nombre} ({presentacion}). Disponible: {producto.stock}'}), 400
 
             precio_usado = float(item.get('precio_unitario', producto.precio_venta))
             subtotal = item['cantidad'] * precio_usado
@@ -336,11 +344,12 @@ def venta_nueva():
                 venta_id=venta.id,
                 producto_id=producto.id,
                 cantidad=item['cantidad'],
+                unidades_descontadas=unidades_fisicas,
                 precio_unitario=precio_usado,
                 subtotal=subtotal
             )
             db.session.add(detalle)
-            producto.stock -= item['cantidad']
+            producto.stock -= unidades_fisicas
             total_venta += subtotal
 
         total_final = total_venta * (1 - venta.descuento / 100)
@@ -366,7 +375,7 @@ def venta_editar(id):
         for detalle in venta.detalles:
             producto = Producto.query.get(detalle.producto_id)
             if producto:
-                producto.stock += detalle.cantidad
+                producto.stock += detalle.unidades_descontadas
         
         # Eliminar detalles anteriores
         DetalleVenta.query.filter_by(venta_id=venta.id).delete()
@@ -383,9 +392,16 @@ def venta_editar(id):
                 db.session.rollback()
                 return jsonify({'error': f'Producto ID {item["producto_id"]} no encontrado'}), 400
             
-            if producto.stock < item['cantidad']:
+            presentacion = item.get('presentacion', 'Unidad')
+            unidades_fisicas = item['cantidad']
+            if presentacion == 'Blíster':
+                unidades_fisicas = item['cantidad'] * 10
+            elif presentacion == 'Caja':
+                unidades_fisicas = item['cantidad'] * 100
+
+            if producto.stock < unidades_fisicas:
                 db.session.rollback()
-                return jsonify({'error': f'Stock insuficiente para {producto.nombre}. Disponible: {producto.stock}'}), 400
+                return jsonify({'error': f'Stock insuficiente para {producto.nombre} ({presentacion}). Disponible: {producto.stock}'}), 400
 
             precio_usado = float(item.get('precio_unitario', producto.precio_venta))
             subtotal = item['cantidad'] * precio_usado
@@ -393,11 +409,12 @@ def venta_editar(id):
                 venta_id=venta.id,
                 producto_id=producto.id,
                 cantidad=item['cantidad'],
+                unidades_descontadas=unidades_fisicas,
                 precio_unitario=precio_usado,
                 subtotal=subtotal
             )
             db.session.add(detalle)
-            producto.stock -= item['cantidad']
+            producto.stock -= unidades_fisicas
             total_venta += subtotal
 
         total_final = total_venta * (1 - venta.descuento / 100)
@@ -434,7 +451,7 @@ def venta_eliminar(id):
         for detalle in venta.detalles:
             producto = Producto.query.get(detalle.producto_id)
             if producto:
-                producto.stock += detalle.cantidad
+                producto.stock += detalle.unidades_descontadas
         
         # Eliminar detalles de venta
         DetalleVenta.query.filter_by(venta_id=venta.id).delete()
