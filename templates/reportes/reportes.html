@@ -218,28 +218,49 @@
 
                 const ctx = document.getElementById('chartReporte').getContext('2d');
                 const gradient = ctx.createLinearGradient(0, 0, 0, 320);
-                gradient.addColorStop(0, 'rgba(13, 110, 253, 0.4)');
-                gradient.addColorStop(1, 'rgba(13, 110, 253, 0.0)');
+                gradient.addColorStop(0, 'rgba(99, 102, 241, 0.35)');
+                gradient.addColorStop(1, 'rgba(99, 102, 241, 0.0)');
+
+                const esAnual = tipo === 'anual';
+                const valoresGanancia = data.valores_ganancia || data.valores.map(() => 0);
 
                 chartReporte = new Chart(ctx, {
-                    type: tipo === 'anual' ? 'bar' : 'line',
+                    type: esAnual ? 'bar' : 'line',
                     data: {
                         labels: data.labels,
-                        datasets: [{
-                            label: 'Ventas (S/.)',
-                            data: data.valores,
-                            backgroundColor: tipo === 'anual' ? 'rgba(13, 110, 253, 0.3)' : gradient,
-                            borderColor: 'rgba(13, 110, 253, 0.8)',
-                            borderWidth: 2,
-                            borderRadius: tipo === 'anual' ? 8 : 0,
-                            fill: tipo !== 'anual',
-                            tension: 0.4,
-                            pointBackgroundColor: 'rgba(13, 110, 253, 1)',
-                            pointBorderColor: '#fff',
-                            pointBorderWidth: 2,
-                            pointRadius: tipo === 'diario' ? 0 : 4,
-                            pointHoverRadius: 6
-                        }]
+                        datasets: [
+                            {
+                                label: 'Ventas (S/.)',
+                                data: data.valores,
+                                backgroundColor: esAnual ? 'rgba(99, 102, 241, 0.3)' : gradient,
+                                borderColor: 'rgba(99, 102, 241, 0.9)',
+                                borderWidth: 2.5,
+                                borderRadius: esAnual ? 8 : 0,
+                                fill: !esAnual,
+                                tension: 0.4,
+                                pointBackgroundColor: '#6366f1',
+                                pointBorderColor: '#fff',
+                                pointBorderWidth: 2,
+                                pointRadius: tipo === 'diario' ? 0 : 4,
+                                pointHoverRadius: 6
+                            },
+                            {
+                                label: 'Ganancia Neta (S/.)',
+                                data: valoresGanancia,
+                                backgroundColor: esAnual ? 'rgba(249, 115, 22, 0.25)' : 'rgba(249, 115, 22, 0.08)',
+                                borderColor: 'rgba(249, 115, 22, 0.9)',
+                                borderWidth: 2.5,
+                                borderRadius: esAnual ? 8 : 0,
+                                borderDash: esAnual ? [] : [5, 3],
+                                fill: false,
+                                tension: 0.4,
+                                pointBackgroundColor: '#f97316',
+                                pointBorderColor: '#fff',
+                                pointBorderWidth: 2,
+                                pointRadius: tipo === 'diario' ? 0 : 4,
+                                pointHoverRadius: 6
+                            }
+                        ]
                     },
                     options: {
                         responsive: true,
@@ -249,18 +270,33 @@
                             mode: 'index'
                         },
                         plugins: {
-                            legend: { display: false },
+                            legend: {
+                                display: true,
+                                labels: {
+                                    color: '#9aa0a6',
+                                    font: { size: 12 },
+                                    boxWidth: 12,
+                                    usePointStyle: true
+                                }
+                            },
                             tooltip: {
-                                backgroundColor: 'rgba(26, 29, 35, 0.95)',
-                                titleColor: '#e8eaed',
+                                backgroundColor: 'rgba(20, 20, 30, 0.95)',
+                                titleColor: '#e2e8f0',
+                                titleFont: { size: 13, weight: 'bold' },
                                 bodyColor: '#9aa0a6',
-                                borderColor: 'rgba(13, 110, 253, 0.3)',
+                                bodyFont: { size: 12 },
+                                borderColor: 'rgba(99, 102, 241, 0.4)',
                                 borderWidth: 1,
                                 cornerRadius: 8,
                                 padding: 12,
                                 callbacks: {
                                     label: function (context) {
-                                        return ' S/.' + context.parsed.y.toFixed(2);
+                                        const label = context.dataset.label;
+                                        const value = context.parsed.y;
+                                        if (label.includes('Ganancia')) {
+                                            return ' 🟠 ' + label + ': S/.' + value.toFixed(2);
+                                        }
+                                        return ' 🔵 ' + label + ': S/.' + value.toFixed(2);
                                     }
                                 }
                             }

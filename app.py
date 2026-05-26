@@ -103,9 +103,17 @@ def dashboard():
         total_dia = db.session.query(func.coalesce(func.sum(Venta.total), 0)).filter(
             Venta.fecha.between(inicio, fin)
         ).scalar()
+        # Calcular costo de los productos vendidos ese día
+        costo_dia = db.session.query(
+            func.coalesce(func.sum(DetalleVenta.cantidad * Producto.precio_compra), 0)
+        ).join(Venta, DetalleVenta.venta_id == Venta.id
+        ).join(Producto, DetalleVenta.producto_id == Producto.id
+        ).filter(Venta.fecha.between(inicio, fin)).scalar()
+        ganancia_dia = float(total_dia) - float(costo_dia)
         ventas_semana.append({
             'dia': dia.strftime('%d/%m'),
-            'total': float(total_dia)
+            'total': float(total_dia),
+            'ganancia': round(ganancia_dia, 2)
         })
 
     # Productos más vendidos y menos vendidos (Top 5 / Bottom 5)
@@ -128,7 +136,8 @@ def dashboard():
     umbral_vencimiento = hoy + timedelta(days=180)
     productos_proximos_vencer = Producto.query.filter(
         Producto.fecha_vencimiento != None,
-        Producto.fecha_vencimiento <= umbral_vencimiento
+        Producto.fecha_vencimiento <= umbral_vencimiento,
+        Producto.stock > 0
     ).order_by(Producto.fecha_vencimiento.asc()).all()
 
     return render_template('dashboard.html',
@@ -339,7 +348,16 @@ def venta_nueva():
                 db.session.rollback()
                 return jsonify({'error': f'Stock insuficiente para {producto.nombre} ({presentacion}). Disponible: {producto.stock}'}), 400
 
-            precio_usado = float(item.get('precio_unitario', producto.precio_venta))
+            # Determinar precio correcto según presentación
+            if presentacion == 'Blíster' and producto.precio_blister and producto.precio_blister > 0:
+                precio_correcto = producto.precio_blister
+            elif presentacion == 'Caja' and producto.precio_caja and producto.precio_caja > 0:
+                precio_correcto = producto.precio_caja
+            else:
+                precio_correcto = producto.precio_venta
+            precio_usado = float(item.get('precio_unitario', precio_correcto))
+            if precio_usado <= 0:
+                precio_usado = precio_correcto
             subtotal = item['cantidad'] * precio_usado
             detalle = DetalleVenta(
                 venta_id=venta.id,
@@ -404,7 +422,18 @@ def venta_editar(id):
                 db.session.rollback()
                 return jsonify({'error': f'Stock insuficiente para {producto.nombre} ({presentacion}). Disponible: {producto.stock}'}), 400
 
-            precio_usado = float(item.get('precio_unitario', producto.precio_venta))
+            # Determinar precio correcto según presentación
+            if presentacion == 'Blíster' and producto.precio_blister and producto.precio_blister > 0:
+                precio_correcto = producto.precio_blister
+            elif presentacion == 'Caja' and producto.precio_caja and producto.precio_caja > 0:
+                precio_correcto = producto.precio_caja
+            else:
+                precio_correcto = producto.precio_venta
+            # Usar precio enviado por el frontend solo si coincide razonablemente; de lo contrario usar el correcto
+            precio_usado = float(item.get('precio_unitario', precio_correcto))
+            # Si el frontend no envió precio_unitario o envió 0, usar el precio correcto
+            if precio_usado <= 0:
+                precio_usado = precio_correcto
             subtotal = item['cantidad'] * precio_usado
             detalle = DetalleVenta(
                 venta_id=venta.id,
@@ -623,12 +652,17 @@ def api_reportes(tipo):
         ventas = Venta.query.filter(Venta.fecha.between(inicio, fin)).all()
 
         datos_por_hora = {}
+        costo_por_hora = {}
         for v in ventas:
             hora = v.fecha.strftime('%H:00')
             datos_por_hora[hora] = datos_por_hora.get(hora, 0) + v.total
+            for d in v.detalles:
+                costo = d.cantidad * d.producto.precio_compra
+                costo_por_hora[hora] = costo_por_hora.get(hora, 0) + costo
 
         labels = [f'{h:02d}:00' for h in range(24)]
         valores = [datos_por_hora.get(l, 0) for l in labels]
+        valores_ganancia = [round(datos_por_hora.get(l, 0) - costo_por_hora.get(l, 0), 2) for l in labels]
 
         total = sum(valores)
         num_ventas = len(ventas)
@@ -638,6 +672,7 @@ def api_reportes(tipo):
         inicio_semana = hoy - timedelta(days=hoy.weekday())
         labels = []
         valores = []
+        valores_ganancia = []
         dias_nombre = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
 
         for i in range(7):
@@ -647,8 +682,14 @@ def api_reportes(tipo):
             total_dia = db.session.query(func.coalesce(func.sum(Venta.total), 0)).filter(
                 Venta.fecha.between(inicio, fin)
             ).scalar()
+            costo_dia = db.session.query(
+                func.coalesce(func.sum(DetalleVenta.cantidad * Producto.precio_compra), 0)
+            ).join(Venta, DetalleVenta.venta_id == Venta.id
+            ).join(Producto, DetalleVenta.producto_id == Producto.id
+            ).filter(Venta.fecha.between(inicio, fin)).scalar()
             labels.append(f'{dias_nombre[i]} {dia.strftime("%d/%m")}')
             valores.append(float(total_dia))
+            valores_ganancia.append(round(float(total_dia) - float(costo_dia), 2))
 
         total = sum(valores)
         num_ventas = Venta.query.filter(
@@ -670,6 +711,7 @@ def api_reportes(tipo):
 
         labels = []
         valores = []
+        valores_ganancia = []
         dia_actual = inicio_mes
         while dia_actual <= fin_mes:
             inicio = datetime.combine(dia_actual, datetime.min.time())
@@ -677,8 +719,14 @@ def api_reportes(tipo):
             total_dia = db.session.query(func.coalesce(func.sum(Venta.total), 0)).filter(
                 Venta.fecha.between(inicio, fin)
             ).scalar()
+            costo_dia = db.session.query(
+                func.coalesce(func.sum(DetalleVenta.cantidad * Producto.precio_compra), 0)
+            ).join(Venta, DetalleVenta.venta_id == Venta.id
+            ).join(Producto, DetalleVenta.producto_id == Producto.id
+            ).filter(Venta.fecha.between(inicio, fin)).scalar()
             labels.append(dia_actual.strftime('%d'))
             valores.append(float(total_dia))
+            valores_ganancia.append(round(float(total_dia) - float(costo_dia), 2))
             dia_actual += timedelta(days=1)
 
         total = sum(valores)
@@ -693,13 +741,23 @@ def api_reportes(tipo):
                  'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
         labels = meses
         valores = []
+        valores_ganancia = []
 
         for m in range(1, 13):
             total_mes = db.session.query(func.coalesce(func.sum(Venta.total), 0)).filter(
                 extract('year', Venta.fecha) == hoy.year,
                 extract('month', Venta.fecha) == m
             ).scalar()
+            costo_mes = db.session.query(
+                func.coalesce(func.sum(DetalleVenta.cantidad * Producto.precio_compra), 0)
+            ).join(Venta, DetalleVenta.venta_id == Venta.id
+            ).join(Producto, DetalleVenta.producto_id == Producto.id
+            ).filter(
+                extract('year', Venta.fecha) == hoy.year,
+                extract('month', Venta.fecha) == m
+            ).scalar()
             valores.append(float(total_mes))
+            valores_ganancia.append(round(float(total_mes) - float(costo_mes), 2))
 
         total = sum(valores)
         num_ventas = Venta.query.filter(
@@ -770,6 +828,7 @@ def api_reportes(tipo):
     return jsonify({
         'labels': labels,
         'valores': valores,
+        'valores_ganancia': valores_ganancia,
         'total': float(total),
         'num_ventas': int(num_ventas),
         'ganancia': float(ganancia),

@@ -274,6 +274,14 @@ body {
     background: var(--accent);
 }
 
+.stat-card.orange {
+    border-left: 4px solid #f97316;
+}
+
+.stat-card.orange::after {
+    background: #f97316;
+}
+
 .stat-card .stat-icon {
     width: 48px;
     height: 48px;
@@ -308,6 +316,15 @@ body {
 .stat-card.info .stat-icon {
     background: rgba(13, 202, 240, 0.15);
     color: var(--accent);
+}
+
+.stat-card.orange .stat-icon {
+    background: rgba(249, 115, 22, 0.15);
+    color: #f97316;
+}
+
+.stat-card.orange .stat-value {
+    color: #fb923c;
 }
 
 .stat-card .stat-value {

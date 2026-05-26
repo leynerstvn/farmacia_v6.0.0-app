@@ -14,7 +14,7 @@
 </div>
 
 <!-- Stat Cards -->
-<div class="row row-cols-1 row-cols-md-5 g-4 mb-4">
+<div class="row row-cols-1 row-cols-md-3 row-cols-lg-6 g-4 mb-4">
     <div class="col">
         <div class="stat-card primary">
             <div class="stat-icon"><i class="bi bi-box-seam-fill"></i></div>
@@ -44,7 +44,15 @@
         </div>
     </div>
     <div class="col">
-        <div class="stat-card {{ 'danger' if (productos_stock_bajo|length + productos_sin_stock|length) > 0 else 'secondary' }}">
+        <div class="stat-card orange">
+            <div class="stat-icon"><i class="bi bi-graph-up-arrow"></i></div>
+            <div class="stat-value">S/.{{ "%.2f"|format(ganancia_hoy) }}</div>
+            <div class="stat-label">Ganancia Neta</div>
+        </div>
+    </div>
+    <div class="col">
+        <div
+            class="stat-card {{ 'danger' if (productos_stock_bajo|length + productos_sin_stock|length) > 0 else 'secondary' }}">
             <div class="stat-icon"><i class="bi bi-exclamation-triangle-fill"></i></div>
             <div class="stat-value">{{ productos_stock_bajo|length + productos_sin_stock|length }}</div>
             <div class="stat-label">Alertas Stock</div>
@@ -83,13 +91,13 @@
                                 class="{% if dias_restantes <= 0 %}text-danger{% elif dias_restantes <= 30 %}text-warning{% else %}text-warning{% endif %}">
                                 {{ p.fecha_vencimiento.strftime('%d/%m/%Y') }}
                             </strong></small>
-                        {% if dias_restantes <= 0 %}
-                        <small class="text-danger d-block">Vencido hace {{ dias_restantes|abs }} dias</small>
-                        {% elif dias_restantes <= 30 %}
-                        <small class="text-warning d-block">Vence en {{ dias_restantes }} dias</small>
-                        {% else %}
-                        <small style="color: #ffc107;" class="d-block">En {{ dias_restantes }} dias</small>
-                        {% endif %}
+                        {% if dias_restantes <= 0 %} <small class="text-danger d-block">Vencido hace {{
+                            dias_restantes|abs }} dias</small>
+                            {% elif dias_restantes <= 30 %} <small class="text-warning d-block">Vence en {{
+                                dias_restantes }} dias</small>
+                                {% else %}
+                                <small style="color: #ffc107;" class="d-block">En {{ dias_restantes }} dias</small>
+                                {% endif %}
                     </div>
                 </div>
                 {% endfor %}
@@ -116,7 +124,8 @@
                 <div class="cart-item" style="border-left: 3px solid #ffc107;">
                     <div class="item-info">
                         <h6>{{ p.nombre }}</h6>
-                        <small>Stock: <strong class="text-warning">{{ p.stock }}</strong> / Mín: {{ p.stock_minimo }}</small>
+                        <small>Stock: <strong class="text-warning">{{ p.stock }}</strong> / Mín: {{ p.stock_minimo
+                            }}</small>
                     </div>
                     <span class="badge badge-stock-bajo">BAJO</span>
                 </div>
@@ -144,7 +153,8 @@
                 <div class="cart-item" style="border-left: 3px solid #dc3545;">
                     <div class="item-info">
                         <h6>{{ p.nombre }}</h6>
-                        <small>Stock: <strong class="text-danger fw-bold">Sin Stock</strong> / Mín: {{ p.stock_minimo }}</small>
+                        <small>Stock: <strong class="text-danger fw-bold">Sin Stock</strong> / Mín: {{ p.stock_minimo
+                            }}</small>
                     </div>
                     <span class="badge" style="background: #dc3545; font-size: 0.7rem;">SIN STOCK</span>
                 </div>
@@ -241,30 +251,87 @@
     const ctx = document.getElementById('chartVentasSemana').getContext('2d');
 
     new Chart(ctx, {
-        type: 'bar',
+        type: 'line',
         data: {
             labels: ventasData.map(v => v.dia),
-            datasets: [{
-                label: 'Ventas (S/.)',
-                data: ventasData.map(v => v.total),
-                backgroundColor: 'rgba(13, 110, 253, 0.3)',
-                borderColor: 'rgba(13, 110, 253, 0.8)',
-                borderWidth: 2,
-                borderRadius: 8,
-                borderSkipped: false
-            }]
+            datasets: [
+                {
+                    label: 'Ventas (S/.)',
+                    data: ventasData.map(v => v.total),
+                    backgroundColor: 'rgba(99, 102, 241, 0.15)',
+                    borderColor: 'rgba(99, 102, 241, 0.9)',
+                    borderWidth: 2.5,
+                    pointBackgroundColor: '#6366f1',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2,
+                    pointRadius: 5,
+                    pointHoverRadius: 7,
+                    tension: 0.4,
+                    fill: true
+                },
+                {
+                    label: 'Ganancia Neta (S/.)',
+                    data: ventasData.map(v => v.ganancia),
+                    backgroundColor: 'rgba(249, 115, 22, 0.10)',
+                    borderColor: 'rgba(249, 115, 22, 0.9)',
+                    borderWidth: 2.5,
+                    pointBackgroundColor: '#f97316',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2,
+                    pointRadius: 5,
+                    pointHoverRadius: 7,
+                    tension: 0.4,
+                    fill: false,
+                    borderDash: [5, 3]
+                }
+            ]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            interaction: {
+                mode: 'index',
+                intersect: false
+            },
             plugins: {
-                legend: { display: false }
+                legend: {
+                    display: true,
+                    labels: {
+                        color: '#9aa0a6',
+                        font: { size: 12 },
+                        boxWidth: 12,
+                        usePointStyle: true
+                    }
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(20, 20, 30, 0.95)',
+                    borderColor: 'rgba(99, 102, 241, 0.4)',
+                    borderWidth: 1,
+                    padding: 12,
+                    titleColor: '#e2e8f0',
+                    titleFont: { size: 13, weight: 'bold' },
+                    bodyColor: '#9aa0a6',
+                    bodyFont: { size: 12 },
+                    callbacks: {
+                        label: function (context) {
+                            const label = context.dataset.label;
+                            const value = context.parsed.y;
+                            if (label.includes('Ganancia')) {
+                                return ' 🟠 ' + label + ': S/.' + value.toFixed(2);
+                            }
+                            return ' 🔵 ' + label + ': S/.' + value.toFixed(2);
+                        }
+                    }
+                }
             },
             scales: {
                 y: {
                     beginAtZero: true,
                     grid: { color: 'rgba(255,255,255,0.05)' },
-                    ticks: { color: '#9aa0a6' }
+                    ticks: {
+                        color: '#9aa0a6',
+                        callback: val => 'S/.' + val
+                    }
                 },
                 x: {
                     grid: { display: false },
