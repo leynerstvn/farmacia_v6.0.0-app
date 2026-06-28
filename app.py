@@ -93,6 +93,7 @@ def dashboard():
 
     costo_ventas_hoy = sum(d.cantidad * d.producto.precio_compra for v in ventas_hoy for d in v.detalles)
     ganancia_hoy = total_ventas_hoy - costo_ventas_hoy
+    margen_hoy = round((ganancia_hoy / total_ventas_hoy * 100), 1) if total_ventas_hoy > 0 else 0
 
     # Ventas últimos 7 días para gráfico
     ventas_semana = []
@@ -147,6 +148,7 @@ def dashboard():
                            total_ventas_hoy=total_ventas_hoy,
                            num_ventas_hoy=num_ventas_hoy,
                            ganancia_hoy=ganancia_hoy,
+                           margen_hoy=margen_hoy,
                            ventas_semana=json.dumps(ventas_semana),
                            top_productos=top_productos,
                            bottom_productos=bottom_productos,
