@@ -464,8 +464,16 @@
         document.getElementById('btn-procesar-venta').disabled = false;
     }
 
+    let procesandoEdicion = false;
+
     function procesarEdicion() {
         if (carrito.length === 0) return;
+        if (procesandoEdicion) return; // Prevenir doble envío
+
+        procesandoEdicion = true;
+        const btnProcesar = document.getElementById('btn-procesar-venta');
+        btnProcesar.disabled = true;
+        btnProcesar.innerHTML = '<i class="bi bi-hourglass-split"></i> Guardando...';
 
         const datos = {
             cliente: document.getElementById('input-cliente').value,
@@ -491,11 +499,17 @@
                     window.location.href = '{{ url_for("venta_detalle", id=venta.id) }}';
                 } else {
                     alert('❌ Error: ' + data.error);
+                    procesandoEdicion = false;
+                    btnProcesar.disabled = false;
+                    btnProcesar.innerHTML = '<i class="bi bi-save"></i> Guardar Cambios';
                 }
             })
             .catch(err => {
                 alert('❌ Error al actualizar la venta');
                 console.error(err);
+                procesandoEdicion = false;
+                btnProcesar.disabled = false;
+                btnProcesar.innerHTML = '<i class="bi bi-save"></i> Guardar Cambios';
             });
     }
 </script>
