@@ -156,7 +156,7 @@ def dashboard():
                            hoy=hoy)
 
 
-from sqlalchemy import func, extract, or_
+from sqlalchemy import or_
 
 # ========================================================
 #  PRODUCTOS
@@ -580,6 +580,86 @@ def ventas_exportar():
     )
 
 
+@app.route('/productos/exportar_stock_bajo')
+@login_required
+def exportar_stock_bajo():
+    productos = Producto.query.filter(Producto.stock <= Producto.stock_minimo, Producto.stock > 0).order_by(Producto.nombre).all()
+    
+    data = []
+    for p in productos:
+        data.append({
+            'Producto': p.nombre,
+            'Categoría': p.categoria,
+            'Stock Actual': p.stock,
+            'Stock Mínimo': p.stock_minimo,
+            'Precio Compra': p.precio_compra,
+            'Precio Venta': p.precio_venta,
+            'Código Barras': p.codigo_barras or '',
+            'Lote': p.lote or ''
+        })
+    
+    if not data:
+        flash('No hay productos con stock bajo para exportar.', 'warning')
+        return redirect(url_for('dashboard'))
+    
+    df = pd.DataFrame(data)
+    output = BytesIO()
+    with pd.ExcelWriter(output, engine='openpyxl') as writer:
+        df.to_excel(writer, index=False, sheet_name='Stock Bajo')
+        worksheet = writer.sheets['Stock Bajo']
+        for idx, col in enumerate(df.columns):
+            max_len = max(df[col].astype(str).map(len).max(), len(str(col))) + 2
+            worksheet.column_dimensions[chr(65 + idx)].width = max_len
+    output.seek(0)
+    
+    return send_file(
+        output,
+        as_attachment=True,
+        download_name=f'productos_stock_bajo_{datetime.now().strftime("%Y%m%d_%H%M%S")}.xlsx',
+        mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+
+
+@app.route('/productos/exportar_sin_stock')
+@login_required
+def exportar_sin_stock():
+    productos = Producto.query.filter(Producto.stock == 0).order_by(Producto.nombre).all()
+    
+    data = []
+    for p in productos:
+        data.append({
+            'Producto': p.nombre,
+            'Categoría': p.categoria,
+            'Stock Actual': 0,
+            'Stock Mínimo': p.stock_minimo,
+            'Precio Compra': p.precio_compra,
+            'Precio Venta': p.precio_venta,
+            'Código Barras': p.codigo_barras or '',
+            'Lote': p.lote or ''
+        })
+    
+    if not data:
+        flash('No hay productos sin stock para exportar.', 'warning')
+        return redirect(url_for('dashboard'))
+    
+    df = pd.DataFrame(data)
+    output = BytesIO()
+    with pd.ExcelWriter(output, engine='openpyxl') as writer:
+        df.to_excel(writer, index=False, sheet_name='Sin Stock')
+        worksheet = writer.sheets['Sin Stock']
+        for idx, col in enumerate(df.columns):
+            max_len = max(df[col].astype(str).map(len).max(), len(str(col))) + 2
+            worksheet.column_dimensions[chr(65 + idx)].width = max_len
+    output.seek(0)
+    
+    return send_file(
+        output,
+        as_attachment=True,
+        download_name=f'productos_sin_stock_{datetime.now().strftime("%Y%m%d_%H%M%S")}.xlsx',
+        mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+
+
 # ========================================================
 #  COMPRAS
 # ========================================================
@@ -862,6 +942,7 @@ def api_productos():
 #  API - Generar QR
 # ========================================================
 @app.route('/api/qr/<path:data>')
+@login_required
 def generar_qr(data):
     qr = qrcode.QRCode(
         version=1,

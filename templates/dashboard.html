@@ -114,9 +114,16 @@
     <!-- Productos con Stock Bajo -->
     <div class="col-md-2">
         <div class="card h-100">
-            <div class="card-header">
-                <i class="bi bi-exclamation-triangle text-warning me-2"></i>Stock Bajo
-                <span class="badge bg-warning text-dark ms-1">{{ productos_stock_bajo|length }}</span>
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span>
+                    <i class="bi bi-exclamation-triangle text-warning me-2"></i>Stock Bajo
+                    <span class="badge bg-warning text-dark ms-1">{{ productos_stock_bajo|length }}</span>
+                </span>
+                {% if productos_stock_bajo %}
+                <a href="{{ url_for('exportar_stock_bajo') }}" class="btn btn-sm btn-outline-warning" title="Exportar a Excel" style="padding: 2px 8px; font-size: 0.75rem;">
+                    <i class="bi bi-file-earmark-excel me-1"></i>Excel
+                </a>
+                {% endif %}
             </div>
             <div class="card-body" style="max-height: 340px; overflow-y: auto;">
                 {% if productos_stock_bajo %}
@@ -143,9 +150,16 @@
     <!-- Productos Sin Stock -->
     <div class="col-md-2">
         <div class="card h-100">
-            <div class="card-header">
-                <i class="bi bi-x-circle text-danger me-2"></i>Sin Stock
-                <span class="badge bg-danger ms-1">{{ productos_sin_stock|length }}</span>
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span>
+                    <i class="bi bi-x-circle text-danger me-2"></i>Sin Stock
+                    <span class="badge bg-danger ms-1">{{ productos_sin_stock|length }}</span>
+                </span>
+                {% if productos_sin_stock %}
+                <a href="{{ url_for('exportar_sin_stock') }}" class="btn btn-sm btn-outline-danger" title="Exportar a Excel" style="padding: 2px 8px; font-size: 0.75rem;">
+                    <i class="bi bi-file-earmark-excel me-1"></i>Excel
+                </a>
+                {% endif %}
             </div>
             <div class="card-body" style="max-height: 340px; overflow-y: auto;">
                 {% if productos_sin_stock %}

@@ -425,8 +425,16 @@
         document.getElementById('btn-procesar-venta').disabled = false;
     }
 
+    let procesandoVenta = false;
+
     function procesarVenta() {
         if (carrito.length === 0) return;
+        if (procesandoVenta) return; // Prevenir doble envío
+
+        procesandoVenta = true;
+        const btnProcesar = document.getElementById('btn-procesar-venta');
+        btnProcesar.disabled = true;
+        btnProcesar.innerHTML = '<i class="bi bi-hourglass-split"></i> Procesando...';
 
         const datos = {
             cliente: document.getElementById('input-cliente').value,
@@ -452,11 +460,17 @@
                     window.location.href = '{{ url_for("ventas_lista") }}';
                 } else {
                     alert('❌ Error: ' + data.error);
+                    procesandoVenta = false;
+                    btnProcesar.disabled = false;
+                    btnProcesar.innerHTML = '<i class="bi bi-check-circle"></i> Procesar Venta';
                 }
             })
             .catch(err => {
                 alert('❌ Error al procesar la venta');
                 console.error(err);
+                procesandoVenta = false;
+                btnProcesar.disabled = false;
+                btnProcesar.innerHTML = '<i class="bi bi-check-circle"></i> Procesar Venta';
             });
     }
 </script>

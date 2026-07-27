@@ -152,7 +152,7 @@
                     <i class="bi bi-truck" style="font-size: 40px;"></i>
                     <p class="mt-2 mb-0">Agrega productos a la compra</p>
                 </div>`;
-            document.getElementById('total-compra').textContent = '$0.00';
+            document.getElementById('total-compra').textContent = 'S/.0.00';
             document.getElementById('badge-items-compra').textContent = '0 items';
             document.getElementById('btn-procesar-compra').disabled = true;
             return;
@@ -169,9 +169,9 @@
             html += `
                 <div class="cart-item">
                     <div class="item-info" style="flex: 1;">
-                        <h6>S/.{item.nombre}</h6>
+                        <h6>${item.nombre}</h6>
                         <div class="d-flex align-items-center gap-2 mt-1">
-                            <small>P.U: $</small>
+                            <small>P.U: S/.</small>
                             <input type="number" value="${item.precio.toFixed(2)}" step="0.01" min="0"
                                    style="width: 80px; background: var(--dark-4); border: 1px solid var(--border-color); color: var(--text-primary); border-radius: 6px; padding: 2px 6px; font-size: 12px;"
                                    onchange="cambiarPrecioCompra(${item.id}, this.value)">
@@ -182,7 +182,7 @@
                         <button class="btn btn-outline-light btn-sm" onclick="cambiarCantidadCompra(${item.id}, -1)" style="padding: 2px 8px;">
                             <i class="bi bi-dash"></i>
                         </button>
-                        <span style="min-width: 30px; text-align: center; font-weight: 600; color: white;">S/.{item.cantidad}</span>
+                        <span style="min-width: 30px; text-align: center; font-weight: 600; color: white;">${item.cantidad}</span>
                         <button class="btn btn-outline-light btn-sm" onclick="cambiarCantidadCompra(${item.id}, 1)" style="padding: 2px 8px;">
                             <i class="bi bi-plus"></i>
                         </button>
@@ -195,7 +195,7 @@
         });
 
         container.innerHTML = html;
-        document.getElementById('total-compra').textContent = ''S/.' + total.toFixed(2);
+        document.getElementById('total-compra').textContent = 'S/.' + total.toFixed(2);
         document.getElementById('badge-items-compra').textContent = totalItems + ' items';
         document.getElementById('btn-procesar-compra').disabled = false;
     }
@@ -220,7 +220,7 @@
             .then(res => res.json())
             .then(data => {
                 if (data.success) {
-                    alert('✅ Compra registrada exitosamente. Total: 'S/.' + data.total.toFixed(2));
+                    alert('✅ Compra registrada exitosamente. Total: S/.' + data.total.toFixed(2));
                     window.location.href = '{{ url_for("compras_lista") }}';
                 } else {
                     alert('❌ Error: ' + data.error);
